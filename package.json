@@ -1,0 +1,19 @@
+{
+  "name": "rtcengine-server",
+  "version": "1.0.0",
+  "description": "rtc server",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RTCEngine/RTCEngine-server.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RTCEngine/RTCEngine-server/issues"
+  },
+  "homepage": "https://github.com/RTCEngine/RTCEngine-server#readme"
+}
