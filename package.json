@@ -1,7 +1,7 @@
 {
-  "name": "dotengine-server",
-  "version": "1.0.0",
-  "description": "dotEngine server",
+  "name": "RTCEngine-server",
+  "version": "0.0.1",
+  "description": "RTCEngine server",
   "main": "index.js",
   "scripts": {
     "build": "tsc",
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dotEngine/dotEngine-server.git"
+    "url": "git+https://github.com/RTCEngine/RTCEngine-server.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/dotEngine/dotEngine-server/issues"
+    "url": ""
   },
-  "homepage": "https://github.com/dotEngine/dotEngine-server#readme",
+  "homepage": "https://github.com/RTCEngine/RTCEngine-server",
   "dependencies": {
     "@types/body-parser": "^1.16.8",
     "@types/cookie-parser": "^1.4.1",
@@ -45,11 +45,9 @@
     "method": "^2.0.0",
     "method-override": "^2.3.10",
     "nodemon": "^1.15.1",
-    "rtprecorder": "^1.2.0",
-    "sdp-transform": "^2.4.0",
     "semantic-sdp": "^3.9.0",
     "ts-node": "^5.0.1",
-    "typescript": "^2.7.1",
+    "typescript": "^2.9.2",
     "uuid": "^3.2.1",
     "ws": "^4.0.0"
   }
