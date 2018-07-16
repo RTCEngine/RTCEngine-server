@@ -9,7 +9,6 @@ import * as cors from 'cors'
 import errorHandler = require('errorhandler')
 import methodOverride = require('method-override')
 
-const recorder = require('rtprecorder')
 
 const MediaServer = require('medooze-media-server')
 
@@ -30,7 +29,6 @@ export default class Application {
     public server: http.Server
     public wsServer: WebSocket.Server
     public endpoint: any
-    public recorder: any
     public rooms: Map<string, Room> = new Map()
     public peers: Map<string, Peer> = new Map()
 
@@ -56,8 +54,6 @@ export default class Application {
         //create ws server 
         this.wsServer = new WebSocket.Server({ noServer: true })
 
-        //init recorder 
-        this.recorder = new recorder.RtpRecorder(config.recorder)
 
         //create media server
         this.endpoint = MediaServer.createEndpoint(config.server.host);
