@@ -29,12 +29,12 @@ const log = new Logger('peer')
 
 class Peer extends EventEmitter {
 
+
     public id: string
     public usePlanB: boolean = true
     public socket: WebSocket
     public userid: string
     public roomid: string
-    public msids: Set<string> = new Set()
     public closed: boolean = false
     // after Unified Plan is supported, we should set bitrate for every mediasource
     public bitrateMap: Map<string, number> = new Map() 
@@ -142,6 +142,10 @@ class Peer extends EventEmitter {
         return this.incomingStreams.values()
     }
 
+    public get incomingStreamids(): string[] {
+        return Array.from(this.incomingStreams.keys())
+    }
+
     // For outgoing stream 
     public addStream(stream: any) {
 
@@ -219,6 +223,15 @@ class Peer extends EventEmitter {
 
     public getRemoteSDP() {
         return this.remoteSDP
+    }
+
+    public dumps():any {
+        const info = {
+            id: this.userid,
+            streams: this.incomingStreamids
+        }
+        
+        return info
     }
 
     private async onMessage(msg: any) {
@@ -353,7 +366,7 @@ class Peer extends EventEmitter {
             .map((peer) => {
                 return {
                     id: peer.userid,
-                    msids: Array.from(peer.msids)
+                    msids: peer.incomingStreamids
                 }
             })
 
@@ -374,7 +387,7 @@ class Peer extends EventEmitter {
             data: {
                 peer: {
                     id: this.userid,
-                    msids: Array.from(this.msids)
+                    msids: this.incomingStreamids
                 }
             }
         }, [this.userid])
@@ -385,10 +398,15 @@ class Peer extends EventEmitter {
 
         const sdp = SDPInfo.process(msg.data.sdp)
 
+        // a bit ugly, TODO
         // find streams to add   
         for (let stream of sdp.getStreams().values()) {
             if (!this.incomingStreams.get(stream.getId())) {
-                this.publishStream(stream)
+                //this.publishStream(stream)
+
+                this.room && this.room.broadcast({
+                    type : 'peer_upd'
+                })
             }
         }
 
@@ -499,6 +517,8 @@ class Peer extends EventEmitter {
     private async handleLeave(msg: any) {
 
     }
+
+    
 
 }
 

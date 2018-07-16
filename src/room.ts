@@ -105,9 +105,17 @@ export default class Room extends EventEmitter {
     }
 
     public dumps(): any {
+        const info = {
+            id: this.roomid
+        }
+        let peers:any[] = []
+        for (let peer of this.peers.values()) {
+            peers.push(peer.dumps())
+        }
 
-        return {}
+        return info
     }
+
     public async broadcast(msg: any, excluded?: string[]) {
 
         const extendsSet = new Set<string>()

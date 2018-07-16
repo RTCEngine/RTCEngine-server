@@ -9,7 +9,6 @@ import * as cors from 'cors'
 import errorHandler = require('errorhandler')
 import methodOverride = require('method-override')
 
-
 const MediaServer = require('medooze-media-server')
 
 import Room from './room'
