@@ -241,13 +241,11 @@ class Peer extends EventEmitter {
     private async onMessage(msg: any) {
 
         // log.debug('onMessage ', msg)
-
+        
         if (msg.type === 'join') {
             await this.handleJoin(msg)
         } else if (msg.type === 'offer') {
             await this.handleOffer(msg)
-        } else if (msg.type === 'answer') {
-            await this.handleAnswer(msg)
         } else if (msg.type === 'configure') {
             await this.handleConfigure(msg)
         } else if (msg.type === 'attributes') {
@@ -433,19 +431,6 @@ class Peer extends EventEmitter {
                         msid: stream.getId()
                     }
                 })
-            }
-        }
-
-    }
-
-    // we did not need this for now 
-    private async handleAnswer(msg: any) {
-
-        const sdp = SDPInfo.process(msg.data.sdp)
-        // find streams to add
-        for (let stream of sdp.getStreams().values()) {
-            if (!this.incomingStreams.get(stream.getId())) {
-                //this.publishStream(stream)
             }
         }
 
