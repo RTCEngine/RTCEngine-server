@@ -12,7 +12,6 @@ export default class Room extends EventEmitter {
     public roomid: string
     public closed: boolean
     public peers: Map<string, Peer>
-    public capabilities: any
 
     constructor(room: string, endpoint: any) {
 
@@ -22,27 +21,6 @@ export default class Room extends EventEmitter {
         this.roomid = room
         this.closed = false
         this.peers = new Map()
-
-        this.capabilities = {
-            audio: {
-                codecs: CodecInfo.MapFromNames(['opus']),
-                extensions: new Set([
-                    'urn:ietf:params:rtp-hdrext:ssrc-audio-level',
-                    'http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01'
-                ])
-            },
-            video: {
-                codecs: CodecInfo.MapFromNames(['vp8', 'flexfec-03'], true),
-                extensions: new Set([
-                    'http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time',
-                    'http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01',
-                    "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
-                    "urn:ietf:params:rtp-hdrext:sdes:repair-rtp-stream-id",
-                    "urn:ietf:params:rtp-hdrext:sdes:mid"
-                ]),
-                simulcast: true
-            }
-        }
 
     }
 
@@ -86,7 +64,7 @@ export default class Room extends EventEmitter {
         if (this.closed) {
             return
         }
-
+        
         log.debug('room close')
 
         this.closed = true

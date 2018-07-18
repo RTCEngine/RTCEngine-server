@@ -166,10 +166,7 @@ class Peer extends EventEmitter {
 
         this.emit('renegotiationneeded', this.localSDP)
 
-
         outgoingStream.attachTo(stream)
-
-        log.error('outgoingStream added', outgoingStream.id)
         
         stream.on('stopped', () => {
 
@@ -179,8 +176,9 @@ class Peer extends EventEmitter {
 
             this.outgoingStreams.delete(outgoingStream.getId())
 
-            // remove from sdp 
-            this.localSDP.removeStream(info)
+            if (this.localSDP) {
+                this.localSDP.removeStream(info)
+            }
 
             this.emit('renegotiationneeded', this.localSDP)
 
@@ -339,8 +337,6 @@ class Peer extends EventEmitter {
 
         const streams = this.room.getStreams()
 
-        log.error('room get streams ', streams)
-
         for (let stream of streams) {
             this.addStream(stream)
         }
@@ -360,8 +356,6 @@ class Peer extends EventEmitter {
                     room: this.room.dumps()
                 }
             })
-
-            log.error('renegotiationneeded======================================', this.userid, sdp.toString())
         })
 
         
@@ -444,24 +438,17 @@ class Peer extends EventEmitter {
 
     }
 
+    // we did not need this for now 
     private async handleAnswer(msg: any) {
 
         const sdp = SDPInfo.process(msg.data.sdp)
-
         // find streams to add
         for (let stream of sdp.getStreams().values()) {
             if (!this.incomingStreams.get(stream.getId())) {
-                log.error('answer should not addStream ================', stream.getId())
                 //this.publishStream(stream)
             }
         }
 
-        // // find streams to remove 
-        // for (let stream of this.incomingStreams.values()) {
-        //     if (!sdp.getStreams().get(stream.getId())) {
-        //         this.unpublishStream(stream)
-        //     }
-        // }
     }
 
     private async handleConfigure(msg: any) {
@@ -529,7 +516,6 @@ class Peer extends EventEmitter {
 
     }
 
-    
 
 }
 
