@@ -11,7 +11,8 @@ import Application from './src/application'
 
 Application.bootstrap()
 
-MediaServer.enableDebug(true)
+MediaServer.enableLog(false)
+MediaServer.enableDebug(false)
 MediaServer.enableUltraDebug(false)
 
 //todo add some cli 

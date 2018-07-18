@@ -43,8 +43,7 @@ export default {
                     'urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id',
                     'urn:ietf:params:rtp-hdrext:sdes:repair-rtp-stream-id',
                     'urn:ietf:params:rtp-hdrext:sdes:mid'
-                ]),
-                simulcast: true
+                ])
             }
         }
     }

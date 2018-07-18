@@ -149,20 +149,27 @@ class Peer extends EventEmitter {
     // For outgoing stream 
     public addStream(stream: any) {
 
-        const outgoingStream = this.transport.createOutgoingStream({
-            audio: true,
-            video: true
-        })
+        log.error("addStream", stream)
+
+        if (this.outgoingStreams.get(stream.getId())) {
+            log.error("addStream: outstream already exist", stream.getId())
+            return
+        }
+
+        const outgoingStream = this.transport.createOutgoingStream(stream.getStreamInfo())
 
         const info = outgoingStream.getStreamInfo()
-
+        
         this.localSDP.addStream(info)
 
         this.outgoingStreams.set(outgoingStream.getId(), outgoingStream)
 
-        this.emit('renegotiationneeded', this.localSDP)
-
         outgoingStream.attachTo(stream)
+
+
+        log.error('outgoingStream added', outgoingStream.id)
+
+        this.emit('renegotiationneeded', this.localSDP)
 
         stream.on('stopped', () => {
 
@@ -228,15 +235,14 @@ class Peer extends EventEmitter {
     public dumps():any {
         const info = {
             id: this.userid,
-            streams: this.incomingStreamids
+            msids: this.incomingStreamids
         }
-        
         return info
     }
 
     private async onMessage(msg: any) {
 
-        log.debug('onMessage ', msg)
+        // log.debug('onMessage ', msg)
 
         if (msg.type === 'join') {
             await this.handleJoin(msg)
@@ -289,6 +295,7 @@ class Peer extends EventEmitter {
         this.transport = endpoint.createTransport(offer)
 
         this.transport.on('targetbitrate', (bitrate:number) => {
+
             log.debug('transport:bitrate', bitrate)
         })
 
@@ -337,6 +344,8 @@ class Peer extends EventEmitter {
 
         const streams = this.room.getStreams()
 
+        log.error('room get streams ', streams)
+
         for (let stream of streams) {
             this.addStream(stream)
         }
@@ -347,36 +356,27 @@ class Peer extends EventEmitter {
 
         // After first  addStream, we should listen 'renegotiationneeded'
         this.on('renegotiationneeded', (sdp) => {
+
             this.send({
                 type: 'offer',
                 from: this.userid,
                 data: {
-                    sdp: sdp.toString()
+                    sdp: sdp.toString(),
+                    room: this.room.dumps()
                 }
             })
-            log.debug('renegotiationneeded', sdp.toString())
+
+            log.error('renegotiationneeded======================================', this.userid, sdp.toString())
         })
 
-        // send joined  and  peer_connected 
-        // peer = {id:id,msids:msids}
-        let peers = Array.from(this.room.peers.values())
-            .filter((peer) => {
-                return peer.userid != this.userid;
-            })
-            .map((peer) => {
-                return {
-                    id: peer.userid,
-                    msids: peer.incomingStreamids
-                }
-            })
-
+        
         this.send({
             type: 'joined',
             from: this.userid,
             target: this.userid,
             data: {
                 sdp: this.getLocalSDP().toString(),
-                peers: peers
+                room : this.room.dumps()
             }
         })
 
@@ -398,15 +398,13 @@ class Peer extends EventEmitter {
 
         const sdp = SDPInfo.process(msg.data.sdp)
 
+        let oldStreamIds = new Set(this.incomingStreamids)
+
         // a bit ugly, TODO
         // find streams to add   
         for (let stream of sdp.getStreams().values()) {
             if (!this.incomingStreams.get(stream.getId())) {
-                //this.publishStream(stream)
-
-                this.room && this.room.broadcast({
-                    type : 'peer_upd'
-                })
+                this.publishStream(stream)
             }
         }
 
@@ -416,7 +414,7 @@ class Peer extends EventEmitter {
                 this.unpublishStream(stream)
             }
         }
-
+        
         // check bitrate 
         if (this.localSDP.getMediasByType('video')) {
             for(let media of this.localSDP.getMediasByType('video')){
@@ -424,14 +422,31 @@ class Peer extends EventEmitter {
             }
         }
 
+
         this.send({
             type: 'answer',
             from: this.userid,
             target: this.userid,
             data: {
                 sdp: this.getLocalSDP().toString(),
+                room: this.room.dumps()
             }
         })
+
+        
+        for (let stream of sdp.getStreams().values()) {
+            if (!oldStreamIds.has(stream.getId())) {
+                // new stream 
+                this.send({
+                    type: 'streamAdded',
+                    from: this.userid,
+                    data: {
+                        msid: stream.getId()
+                    }
+                })
+            }
+        }
+
     }
 
     private async handleAnswer(msg: any) {
@@ -441,16 +456,17 @@ class Peer extends EventEmitter {
         // find streams to add
         for (let stream of sdp.getStreams().values()) {
             if (!this.incomingStreams.get(stream.getId())) {
-                this.publishStream(stream)
+                log.error('answer should not addStream ================', stream.getId())
+                //this.publishStream(stream)
             }
         }
 
-        // find streams to remove 
-        for (let stream of this.incomingStreams.values()) {
-            if (!sdp.getStreams().get(stream.getId())) {
-                this.unpublishStream(stream)
-            }
-        }
+        // // find streams to remove 
+        // for (let stream of this.incomingStreams.values()) {
+        //     if (!sdp.getStreams().get(stream.getId())) {
+        //         this.unpublishStream(stream)
+        //     }
+        // }
     }
 
     private async handleConfigure(msg: any) {

@@ -41,7 +41,7 @@
     "ioredis": "^3.2.2",
     "ip": "^1.1.5",
     "jwt-simple": "^0.5.1",
-    "medooze-media-server": "^0.39.0",
+    "medooze-media-server": "github:medooze/media-server-node",
     "method": "^2.0.0",
     "method-override": "^2.3.10",
     "nodemon": "^1.15.1",

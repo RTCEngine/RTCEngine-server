@@ -59,9 +59,10 @@ export default class Room extends EventEmitter {
         this.peers.set(peer.userid, peer)
 
         peer.on('stream', (stream) => {
-            
+
             for (let other of this.peers.values()) {
-                if (peer.userid != other.userid) {
+                if (peer.userid !== other.userid) {
+                    log.error('peer userid', peer.userid, "other userid", other.userid)
                     other.addStream(stream)
                 }
             }
@@ -105,14 +106,13 @@ export default class Room extends EventEmitter {
     }
 
     public dumps(): any {
-        const info = {
-            id: this.roomid
+        let info = {
+            id: this.roomid,
+            peers: []
         }
-        let peers:any[] = []
         for (let peer of this.peers.values()) {
-            peers.push(peer.dumps())
+            info.peers.push(peer.dumps())
         }
-
         return info
     }
 
