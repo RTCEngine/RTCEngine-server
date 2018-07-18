@@ -164,13 +164,13 @@ class Peer extends EventEmitter {
 
         this.outgoingStreams.set(outgoingStream.getId(), outgoingStream)
 
-        outgoingStream.attachTo(stream)
-
-
-        log.error('outgoingStream added', outgoingStream.id)
-
         this.emit('renegotiationneeded', this.localSDP)
 
+
+        outgoingStream.attachTo(stream)
+
+        log.error('outgoingStream added', outgoingStream.id)
+        
         stream.on('stopped', () => {
 
             if (!this.outgoingStreams) {
@@ -283,11 +283,6 @@ class Peer extends EventEmitter {
 
         this.room.addPeer(this)
 
-        this.room.on('participants', (participants) => {
-            log.debug('participants', participants)
-
-            // send event 
-        })
 
         const endpoint = this.application.endpoint
 
@@ -295,7 +290,7 @@ class Peer extends EventEmitter {
         this.transport = endpoint.createTransport(offer)
 
         this.transport.on('targetbitrate', (bitrate:number) => {
-
+            
             log.debug('transport:bitrate', bitrate)
         })
 
