@@ -119,14 +119,9 @@ class Peer extends EventEmitter {
             this.transport.stop()
         }
 
-        this.room = undefined
         this.incomingStreams.clear()
         this.outgoingStreams.clear()
-        this.transport = undefined
-        this.localSDP = undefined
-        this.remoteSDP = undefined
 
-        
         this.emit('close')
     }
 
@@ -134,7 +129,7 @@ class Peer extends EventEmitter {
         try {
             this.socket.send(JSON.stringify(msg))
         } catch (error) {
-            log.error('peer send error', error)
+            log.debug('peer send error', error)
         }
     }
 
@@ -148,8 +143,6 @@ class Peer extends EventEmitter {
 
     // For outgoing stream 
     public addStream(stream: any) {
-
-        log.error("addStream", stream)
 
         if (this.outgoingStreams.get(stream.getId())) {
             log.error("addStream: outstream already exist", stream.getId())
@@ -241,7 +234,7 @@ class Peer extends EventEmitter {
     private async onMessage(msg: any) {
 
         // log.debug('onMessage ', msg)
-        
+
         if (msg.type === 'join') {
             await this.handleJoin(msg)
         } else if (msg.type === 'offer') {

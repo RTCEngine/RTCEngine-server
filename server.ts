@@ -12,9 +12,12 @@ import config from './src/config'
 
 Application.bootstrap()
 
+
 MediaServer.enableLog(false)
 MediaServer.enableDebug(false)
 MediaServer.enableUltraDebug(false)
 MediaServer.setPortRange(config.media.rtcMinPort, config.media.rtcMinPort)
+
+
 
 
