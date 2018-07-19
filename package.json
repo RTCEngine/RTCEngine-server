@@ -45,6 +45,7 @@
     "method": "^2.0.0",
     "method-override": "^2.3.10",
     "nodemon": "^1.15.1",
+    "randomstring": "^1.1.5",
     "semantic-sdp": "^3.9.0",
     "ts-node": "^5.0.1",
     "typescript": "^2.9.2",

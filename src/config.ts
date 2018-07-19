@@ -25,8 +25,8 @@ export default {
     media: {
         debug: true,
         ultraDebug: true,
-        rtcMinPort: 30000,
-        rtcMaxPort: 49999,
+        rtcMinPort: 10000,
+        rtcMaxPort: 20000,
         capabilities: {
             audio: {
                 codecs: CodecInfo.MapFromNames(['opus']),
