@@ -9,6 +9,8 @@ import * as cors from 'cors'
 import errorHandler = require('errorhandler')
 import methodOverride = require('method-override')
 
+import * as socketio from 'socket.io'
+
 const MediaServer = require('medooze-media-server')
 
 import Room from './room'
@@ -16,13 +18,14 @@ import Peer from './peer'
 import config from './config'
 
 import apiRouter from './api'
+import { EventEmitter } from 'events'
 
 /**
  * The Application.
  *
  * @class Application
  */
-export default class Application {
+export default class Application extends EventEmitter {
 
     public app: express.Application
     public server: http.Server
@@ -30,8 +33,7 @@ export default class Application {
     public endpoint: any
     public rooms: Map<string, Room> = new Map()
     public peers: Map<string, Peer> = new Map()
-
-
+    public io: socketio.Server
 
     public static bootstrap(): Application {
         return new Application();
@@ -45,6 +47,8 @@ export default class Application {
      */
     constructor() {
         //create expressjs application
+        super()
+
         this.app = express()
 
         //create http server 
@@ -63,8 +67,9 @@ export default class Application {
         //add routes
         this.routes()
 
-        //add websocket server
-        this.websocket()
+        //socketio
+        this.startSocketio()
+
     }
 
     /**
@@ -111,33 +116,43 @@ export default class Application {
         this.app.use(apiRouter)
     }
 
-    private websocket() {
-        this.server.on('upgrade', async (request: http.IncomingMessage, socket: net.Socket, upgradeHead: Buffer) => {
-            if (!request.url) {
-                return
-            }
-            this.wsServer.handleUpgrade(request, socket, upgradeHead, async (sock: WebSocket) => {
-                let peer = new Peer(sock, this)
-                this.peers.set(peer.id, peer)
-                peer.on('close', () => {
-                    this.peers.delete(peer.id)
-                })
+    private startSocketio() {
+
+        this.io = socketio({
+            pingInterval: 10000,
+            pingTimeout: 5000,
+            transports: ['websocket'] 
+        })
+
+        this.io.on('connection', async (socket:SocketIO.Socket) => {
+            let peer = new Peer(null,this)
+            this.peers.set(peer.id, peer)
+
+            this.emit('new-peer', peer)
+
+            peer.on('close', () => {
+                this.peers.delete(peer.id)
             })
         })
     }
 
-    public getRoom(room: string): Room | undefined {
-        if (this.rooms.has(room)) {
-            return this.rooms.get(room)
-        }
-        return undefined
+    public getRooms(): Room[] {
+        return Array.from(this.rooms.values())
     }
 
-    public addRoom(room: Room) {
-        this.rooms.set(room.roomid, room)
+    public getRoom(room: string): Room {
 
+        return this.rooms.get(room)
+    }
+
+    public addRoom(room: Room, peer:Peer) {
+
+        this.rooms.set(room.getId(), room)
+
+        this.emit('new-room', room, peer)
+        
         room.on('close', () => {
-            this.rooms.delete(room.roomid)
+            this.rooms.delete(room.getId())
         })
     }
 

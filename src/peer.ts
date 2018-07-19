@@ -6,7 +6,6 @@ import Message from './message'
 import Room from './room'
 import Application from './application'
 import config from './config'
-import * as redis from './redis'
 import * as utils from './utils'
 import Logger from './logger'
 
@@ -29,10 +28,9 @@ const log = new Logger('peer')
 
 class Peer extends EventEmitter {
 
-
     public id: string
     public usePlanB: boolean = true
-    public socket: WebSocket
+    public socket: SocketIO.Socket
     public userid: string
     public roomid: string
     public closed: boolean = false
@@ -51,46 +49,45 @@ class Peer extends EventEmitter {
 
     private transport: any
 
-    constructor(socket: WebSocket, application: Application) {
+    constructor(socket: SocketIO.Socket, application: Application) {
         super()
-        this.setMaxListeners(Infinity)
+
+        this.application = application
         this.socket = socket
         this.userid = ''
         this.roomid = ''
         this.id = uuid.v4()
 
-        this.application = application
 
-        socket.on('message', async (data: WebSocket.Data) => {
-
-            if (typeof data === 'string') {
-                let msg = Message.parse(data)
-                await this.onMessage(msg)
-            } else {
-                log.error('message does not support ', typeof data)
-            }
+        socket.on('join', async (data:any, callback?:Function) => {
+            await this.handleJoin(data)
         })
 
-        socket.on('close', async (code: number, reason: string) => {
+        socket.on('offer', async (data:any, callback?:Function) => {
+            await this.handleOffer(data)
+        })
 
-            this.room && this.room.broadcast({
-                from: this.userid,
-                type: 'peer_removed',
-                data: {
-                    peer: {
-                        id: this.userid
-                    }
-                }
-            }, [this.userid])
+        socket.on('configure', async (data:any, callback?:Function) => {
+            await this.handleConfigure(data)
+        })
 
+        socket.on('attributes', async (data:any, callback?:Function) => {
+            await this.handleAttributes(data)
+        })
+
+        socket.on('leave', async (data:any, callback?:Function) => {
+            socket.disconnect(true)
             this.close()
         })
 
-        socket.on('error', async (event: { error: any, message: any, type: string, target: WebSocket }) => {
-            log.error('socket error ', event.error)
+        socket.on('disconnect', async () => {
+            socket.to(this.roomid).emit('peer_removed', {
+                peer: this.dumps()
+            })
             this.close()
         })
 
+    
     }
 
     public close() {
@@ -104,7 +101,11 @@ class Peer extends EventEmitter {
         this.closed = true
 
         if (this.socket) {
-            this.socket.close()
+            this.socket.disconnect()
+        }
+
+        if (this.socket) {
+            this.socket.leaveAll()
         }
 
         for (let stream of this.incomingStreams.values()) {
@@ -157,8 +158,6 @@ class Peer extends EventEmitter {
 
         this.outgoingStreams.set(outgoingStream.getId(), outgoingStream)
 
-        this.emit('renegotiationneeded', this.localSDP)
-
         outgoingStream.attachTo(stream)
         
         stream.on('stopped', () => {
@@ -172,15 +171,22 @@ class Peer extends EventEmitter {
             if (this.localSDP) {
                 this.localSDP.removeStream(info)
             }
-
-            this.emit('renegotiationneeded', this.localSDP)
-
+            
             outgoingStream.stop()
+
+            this.emit('renegotiationneeded', outgoingStream)
+            this.emit('remove-outgoing-stream', outgoingStream)
+
         })
+
+        this.emit('renegotiationneeded', outgoingStream)
+        this.emit('new-outgoing-stream', outgoingStream)
     }
 
     // For outgoing stream  TODO
-    public removeStream(stream: any) {}
+    public removeStream(stream: any) {
+
+    }
 
     // publish stream 
     public publishStream(stream: any) {
@@ -193,7 +199,7 @@ class Peer extends EventEmitter {
 
         this.incomingStreams.set(incomingStream.id, incomingStream)
 
-        this.emit('stream', incomingStream)
+        this.emit('new-incoming-stream', incomingStream)
 
     }
 
@@ -211,6 +217,8 @@ class Peer extends EventEmitter {
         }
         // delete from incomingStreams
         this.incomingStreams.delete(stream.getId())
+
+        this.emit('remove-incoming-stream', incomingStream)
 
     }
 
@@ -231,47 +239,29 @@ class Peer extends EventEmitter {
         return info
     }
 
-    private async onMessage(msg: any) {
+    private async handleJoin(data: any) {
 
-        // log.debug('onMessage ', msg)
-
-        if (msg.type === 'join') {
-            await this.handleJoin(msg)
-        } else if (msg.type === 'offer') {
-            await this.handleOffer(msg)
-        } else if (msg.type === 'configure') {
-            await this.handleConfigure(msg)
-        } else if (msg.type === 'attributes') {
-            await this.handleAttributes(msg)
-        } else if (msg.type === 'leave') {
-            await this.handleLeave(msg)
-        } else {
-            log.error('onMessage type does not match')
-        }
-    }
-
-    private async handleJoin(msg: any) {
-
-        const room = <string>msg.data.room
-        const user = <string>msg.data.user
-        const offer = SDPInfo.process(msg.data.sdp)
+        const room = <string>data.room
+        const user = <string>data.user
+        const offer = SDPInfo.process(data.sdp)
 
         this.roomid = room
         this.userid = user
 
-        if ('planb' in msg.data) {
-            this.usePlanB = !!<boolean>msg.data.planb
+        if ('planb' in data) {
+            this.usePlanB = !!<boolean>data.planb
         }
 
         this.room = this.application.getRoom(this.roomid)
 
         if (!this.room) {
             this.room = new Room(this.roomid, this.application.endpoint)
-            this.application.addRoom(this.room)
+            this.application.addRoom(this.room, this)
         }
 
         this.room.addPeer(this)
 
+        this.socket.join(this.roomid)
 
         const endpoint = this.application.endpoint
 
@@ -279,7 +269,7 @@ class Peer extends EventEmitter {
         this.transport = endpoint.createTransport(offer)
 
         this.transport.on('targetbitrate', (bitrate:number) => {
-            
+
             log.debug('transport:bitrate', bitrate)
         })
 
@@ -337,46 +327,39 @@ class Peer extends EventEmitter {
         }
 
         // After first  addStream, we should listen 'renegotiationneeded'
-        this.on('renegotiationneeded', (sdp) => {
+        this.on('renegotiationneeded', (outgoingStream) => {
 
-            this.send({
-                type: 'offer',
-                from: this.userid,
-                data: {
-                    sdp: sdp.toString(),
-                    room: this.room.dumps()
-                }
+            let attributes = this.room.getAttribute(outgoingStream.getId())
+
+            this.socket.emit('attributes', {
+                msid: outgoingStream.getId(),
+                attributes: attributes  
+            })
+
+            this.socket.emit('offer', {
+                sdp: this.localSDP.toString(),
+                room: this.room.dumps()
             })
         })
 
-        
-        this.send({
-            type: 'joined',
-            from: this.userid,
-            target: this.userid,
-            data: {
-                sdp: this.getLocalSDP().toString(),
-                room : this.room.dumps()
-            }
+
+        this.emit('joined', {})
+
+        this.socket.emit('joined', {
+            sdp: this.localSDP.toString(),
+            room: this.room.dumps()
         })
 
-        // TODO, make this better 
-        this.room.broadcast({
-            type: 'peer_connected',
-            from: this.userid,
-            data: {
-                peer: {
-                    id: this.userid,
-                    msids: this.incomingStreamids
-                }
-            }
-        }, [this.userid])
+        this.socket.to(this.roomid).emit('peer_connected', {
+            peer: this.dumps()
+        })
+
     }
 
 
-    private async handleOffer(msg: any) {
+    private async handleOffer(data: any) {
 
-        const sdp = SDPInfo.process(msg.data.sdp)
+        const sdp = SDPInfo.process(data.sdp)
 
         let oldStreamIds = new Set(this.incomingStreamids)
 
@@ -402,56 +385,41 @@ class Peer extends EventEmitter {
             }
         }
 
-
-        this.send({
-            type: 'answer',
-            from: this.userid,
-            target: this.userid,
-            data: {
-                sdp: this.getLocalSDP().toString(),
-                room: this.room.dumps()
-            }
+        this.socket.emit('answer', {
+            sdp: this.localSDP.toString(),
+            room: this.room.dumps()
         })
-
         
         for (let stream of sdp.getStreams().values()) {
             if (!oldStreamIds.has(stream.getId())) {
                 // new stream 
-                this.send({
-                    type: 'streamAdded',
-                    from: this.userid,
-                    data: {
-                        msid: stream.getId()
-                    }
+                this.socket.emit('stream-added', {
+                    msid: stream.getId()
                 })
             }
         }
 
     }
 
-    private async handleConfigure(msg: any) {
+    private async handleConfigure(data: any) {
         // bitrate 
-        if ('bitrate' in msg.data) {
-            let videoMsid = msg.data.msid
-            let bitrate = <number>msg.data.bitrate
+        if ('bitrate' in data) {
+            let videoMsid = data.msid
+            let bitrate = <number>data.bitrate
             this.bitrateMap.set(videoMsid, bitrate)
             this.bitrate = bitrate
             return
         }
 
-        if ('local' in msg.data) {
-            this.room && this.room.broadcast({
-                type: 'configure',
-                from: this.userid,
-                data: msg.data
-            })
+        if ('local' in data) {
+            this.socket.to(this.roomid).emit('configure', data)
             return
         }
 
         // we only mute video for now 
-        if ('remote' in msg.data && 'video' in msg.data) {
-            let videoMsid = msg.data.msid
-            let disable = !msg.data.video
+        if ('remote' in data && 'video' in data) {
+            let videoMsid = data.msid
+            let disable = !data.video
 
             let outgoingStream = this.outgoingStreams.get(videoMsid)
 
@@ -466,35 +434,24 @@ class Peer extends EventEmitter {
         }
     }
 
-
-    private async handleAttributes(msg: any) {
-        let msid = msg.data.msid
-        let attributes = msg.data.attributes
+    private async handleAttributes(data: any) {
+        let msid = data.msid
+        let attributes = data.attributes
 
         if (!msid) {
             return;
         }
 
-        await redis.setStreamAttributes(msid, attributes)
+        if (this.room){
+            this.room.setAttribute(msid, attributes)
+        }
 
-        // todo  
-
-        this.room && this.room.broadcast({
-            type: 'attributes',
-            from: this.userid,
-            data: {
-                msid: msid,
-                attributes: attributes
-            }
-        }, [this.userid])
+        this.socket.to(this.roomid).emit('attributes', {
+            msid: msid,
+            attributes: attributes
+        })
 
     }
-
-    private async handleLeave(msg: any) {
-
-    }
-
-
 }
 
 
