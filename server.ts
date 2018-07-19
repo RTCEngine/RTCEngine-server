@@ -16,7 +16,7 @@ Application.bootstrap()
 MediaServer.enableLog(false)
 MediaServer.enableDebug(false)
 MediaServer.enableUltraDebug(false)
-MediaServer.setPortRange(config.media.rtcMinPort, config.media.rtcMinPort)
+MediaServer.setPortRange(config.media.rtcMinPort, config.media.rtcMaxPort)
 
 
 

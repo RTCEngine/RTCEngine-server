@@ -8,7 +8,7 @@ export default {
         port: 3888,
         host: '127.0.0.1',
         secret: 'test_secret',
-        externalUrl: 'ws://localhost:3888/ws'
+        externalUrl: 'http://localhost:3888/'
     },
     redis: {
         port: 6379,

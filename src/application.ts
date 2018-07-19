@@ -125,7 +125,7 @@ export default class Application extends EventEmitter {
         })
 
         this.io.on('connection', async (socket:SocketIO.Socket) => {
-            let peer = new Peer(null,this)
+            let peer = new Peer(socket,this)
             this.peers.set(peer.id, peer)
 
             this.emit('new-peer', peer)
@@ -134,6 +134,8 @@ export default class Application extends EventEmitter {
                 this.peers.delete(peer.id)
             })
         })
+
+        this.io.attach(this.server)
     }
 
     public getRooms(): Room[] {
