@@ -4,7 +4,7 @@ import * as uuid from 'uuid'
 
 import Message from './message'
 import Room from './room'
-import Application from './application'
+import Server from './server'
 import config from './config'
 import * as utils from './utils'
 import Logger from './logger'
@@ -45,14 +45,14 @@ class Peer extends EventEmitter {
     public localSDP?: any
     public remoteSDP?: any
 
-    private application: Application
+    private server: Server
 
     private transport: any
 
-    constructor(socket: SocketIO.Socket, application: Application) {
+    constructor(socket: SocketIO.Socket, server: Server) {
         super()
 
-        this.application = application
+        this.server = server
         this.socket = socket
         this.userid = ''
         this.roomid = ''
@@ -252,18 +252,18 @@ class Peer extends EventEmitter {
             this.usePlanB = !!<boolean>data.planb
         }
 
-        this.room = this.application.getRoom(this.roomid)
+        this.room = this.server.getRoom(this.roomid)
 
         if (!this.room) {
-            this.room = new Room(this.roomid, this.application.endpoint)
-            this.application.addRoom(this.room, this)
+            this.room = new Room(this.roomid, this.server.endpoint)
+            this.server.addRoom(this.room, this)
         }
 
         this.room.addPeer(this)
 
         this.socket.join(this.roomid)
 
-        const endpoint = this.application.endpoint
+        const endpoint = this.server.endpoint
 
         // ice and dtls
         this.transport = endpoint.createTransport(offer)
