@@ -31,16 +31,7 @@ export default class Server extends EventEmitter {
     public peers: Map<string, Peer> = new Map()
     public io: socketio.Server
 
-    public static bootstrap(): Application {
-        return new Application();
-    }
 
-    /**
-     * Constructor.
-     *
-     * @class Application
-     * @constructor
-     */
     constructor() {
         //create expressjs application
         super()
@@ -64,12 +55,7 @@ export default class Server extends EventEmitter {
 
     }
 
-    /**
-     * Configure application
-     *
-     * @class Application
-     * @method config
-     */
+
     public config() {
         //add static paths
 
@@ -95,16 +81,9 @@ export default class Server extends EventEmitter {
         })
     }
 
-    /**
-     * Create and return Router.
-     *
-     * @class Application
-     * @method config
-     * @return void
-     */
+
     private routes() {
         //use router middleware
-
         this.app.use(apiRouter)
     }
 
