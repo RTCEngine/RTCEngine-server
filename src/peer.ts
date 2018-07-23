@@ -1,5 +1,4 @@
 import { EventEmitter } from 'events'
-import * as WebSocket from 'ws'
 import * as uuid from 'uuid'
 
 import Message from './message'

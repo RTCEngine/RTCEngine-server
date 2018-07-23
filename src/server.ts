@@ -4,7 +4,6 @@ import * as express from 'express'
 import * as path from 'path'
 import * as http from 'http'
 import * as net from 'net'
-import * as WebSocket from 'ws'
 import * as cors from 'cors'
 import errorHandler = require('errorhandler')
 import methodOverride = require('method-override')
@@ -25,7 +24,6 @@ export default class Server extends EventEmitter {
 
     public app: express.Application
     public server: http.Server
-    public wsServer: WebSocket.Server
     public endpoint: any
     public rooms: Map<string, Room> = new Map()
     public peers: Map<string, Peer> = new Map()
