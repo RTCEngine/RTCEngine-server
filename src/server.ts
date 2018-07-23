@@ -20,12 +20,8 @@ import config from './config'
 import apiRouter from './api'
 import { EventEmitter } from 'events'
 
-/**
- * The Application.
- *
- * @class Application
- */
-export default class Application extends EventEmitter {
+
+export default class Server extends EventEmitter {
 
     public app: express.Application
     public server: http.Server
@@ -53,10 +49,6 @@ export default class Application extends EventEmitter {
 
         //create http server 
         this.server = this.app.listen(config.server.port, config.server.host)
-
-        //create ws server 
-        this.wsServer = new WebSocket.Server({ noServer: true })
-
 
         //create media server
         this.endpoint = MediaServer.createEndpoint(config.server.host);
