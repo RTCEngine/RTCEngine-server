@@ -8,9 +8,8 @@ import config from './config'
 import * as utils from './utils'
 import Logger from './logger'
 
-
 const MediaServer = require('medooze-media-server')
-const SemanticSDP	= require("semantic-sdp")
+const SemanticSDP	= require('semantic-sdp')
 
 const SDPInfo		= SemanticSDP.SDPInfo
 const MediaInfo		= SemanticSDP.MediaInfo
@@ -34,7 +33,6 @@ class Peer extends EventEmitter {
     public roomid: string
     public closed: boolean = false
     // after Unified Plan is supported, we should set bitrate for every mediasource
-    public bitrateMap: Map<string, number> = new Map() 
     public bitrate: number = 0
     public room?: Room
 
@@ -45,8 +43,9 @@ class Peer extends EventEmitter {
     public remoteSDP?: any
 
     private server: Server
-
     private transport: any
+
+
 
     constructor(socket: SocketIO.Socket, server: Server) {
         super()
@@ -66,17 +65,25 @@ class Peer extends EventEmitter {
             await this.handleOffer(data)
         })
 
-        socket.on('configure', async (data:any, callback?:Function) => {
-            await this.handleConfigure(data)
+        socket.on('addStream', async (data:any, callback?:Function) => {
+            await this.handleAddStream(data)
         })
 
-        socket.on('attributes', async (data:any, callback?:Function) => {
-            await this.handleAttributes(data)
+        socket.on('removeStream', async (data:any, callback?:Function) => {
+            await this.handleRemoveStream(data)
+        })
+
+        socket.on('configure', async (data:any, callback?:Function) => {
+            await this.handleConfigure(data)
         })
 
         socket.on('leave', async (data:any, callback?:Function) => {
             socket.disconnect(true)
             this.close()
+        })
+
+        socket.on('message', async (data:any, callback?:Function) => {
+            socket.to(this.roomid).emit('message', data)
         })
 
         socket.on('disconnect', async () => {
@@ -231,10 +238,29 @@ class Peer extends EventEmitter {
     }
 
     public dumps():any {
+        /*
+        streams: [
+            {
+                id: string,
+                bitrate:int,
+                attributes:any
+                }
+            }
+        ]
+        */
+        const streams = this.incomingStreamids.map((streamId) => {
+            return {
+                id: streamId,
+                bitrate: this.room.getBitrate(streamId),
+                attributes: this.room.getAttribute(streamId)
+            }
+        })
+
         const info = {
             id: this.userid,
-            msids: this.incomingStreamids
+            streams: streams
         }
+
         return info
     }
 
@@ -321,6 +347,7 @@ class Peer extends EventEmitter {
             this.addStream(stream)
         }
 
+        // just in case 
         for (let stream of offer.getStreams().values()) {
             this.publishStream(stream)
         }
@@ -362,8 +389,6 @@ class Peer extends EventEmitter {
 
         let oldStreamIds = new Set(this.incomingStreamids)
 
-        // a bit ugly, TODO
-        // find streams to add   
         for (let stream of sdp.getStreams().values()) {
             if (!this.incomingStreams.get(stream.getId())) {
                 this.publishStream(stream)
@@ -376,8 +401,9 @@ class Peer extends EventEmitter {
                 this.unpublishStream(stream)
             }
         }
-        
-        // check bitrate 
+
+
+        // check bitrate, fix this after we all support Unified plan
         if (this.localSDP.getMediasByType('video')) {
             for(let media of this.localSDP.getMediasByType('video')){
                 media.setBitrate(this.bitrate)
@@ -388,27 +414,80 @@ class Peer extends EventEmitter {
             sdp: this.localSDP.toString(),
             room: this.room.dumps()
         })
-        
+
+
         for (let stream of sdp.getStreams().values()) {
             if (!oldStreamIds.has(stream.getId())) {
                 // new stream 
-                this.socket.emit('stream-added', {
+                this.socket.emit('stream_added', {
                     msid: stream.getId()
                 })
             }
         }
+    }
+
+    private async handleAddStream(data: any) {
+
+        const sdp = SDPInfo.process(data.sdp)
+        const streamId = data.stream.msid
+        const bitrate = data.stream.bitrate
+        const attributes = data.stream.attributes 
+
+        this.room.setBitrate(streamId, bitrate)
+        this.room.setAttribute(streamId, attributes)
+
+        const stream = sdp.getStreams().get(streamId)
+
+        if (!stream) {
+            return
+        }
+
+        if (this.incomingStreams.get(streamId)) {
+            return
+        }
+
+        this.publishStream(stream)
+
+        // we set bitrate  
+        for(let media of this.localSDP.getMediasByType('video')){
+            if (media.getId() === streamId) {
+                log.debug('setBitrate ===============')
+                media.setBitrate(bitrate)
+            }
+        }
+
+        // check planb and Unified plan 
+        this.socket.emit('answer', {
+            sdp: this.localSDP.toString(),
+        })
+
+        this.socket.emit('stream_added', {
+            msid: stream.getId()
+        })
+
+    }
+
+    private async handleRemoveStream(data: any) {
+        
+        const sdp = SDPInfo.process(data.sdp)
+        const streamId = data.stream.msid
+
+
+        if (!this.incomingStreams.get(streamId)) {
+            return
+        }
+        const stream = this.incomingStreams.get(streamId)
+
+        this.unpublishStream(stream)
+
+        this.socket.emit('answer', {
+            sdp: this.localSDP.toString(),
+            room: this.room.dumps()
+        })
 
     }
 
     private async handleConfigure(data: any) {
-        // bitrate 
-        if ('bitrate' in data) {
-            let videoMsid = data.msid
-            let bitrate = <number>data.bitrate
-            this.bitrateMap.set(videoMsid, bitrate)
-            this.bitrate = bitrate
-            return
-        }
 
         if ('local' in data) {
             this.socket.to(this.roomid).emit('configure', data)
@@ -433,24 +512,6 @@ class Peer extends EventEmitter {
         }
     }
 
-    private async handleAttributes(data: any) {
-        let msid = data.msid
-        let attributes = data.attributes
-
-        if (!msid) {
-            return;
-        }
-
-        if (this.room){
-            this.room.setAttribute(msid, attributes)
-        }
-
-        this.socket.to(this.roomid).emit('attributes', {
-            msid: msid,
-            attributes: attributes
-        })
-
-    }
 }
 
 

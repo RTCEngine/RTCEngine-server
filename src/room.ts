@@ -14,6 +14,7 @@ export default class Room extends EventEmitter {
     private closed: boolean
     private peers: Map<string, Peer>
     private attributes: Map<string,any>
+    private bitrates: Map<string,any>
 
     constructor(roomid: string, endpoint: any) {
 
@@ -24,7 +25,7 @@ export default class Room extends EventEmitter {
         this.closed = false
         this.peers = new Map()
         this.attributes = new Map()
-
+        this.bitrates = new Map()     
     }
 
     public getId():string {
@@ -111,6 +112,14 @@ export default class Room extends EventEmitter {
 
     public setAttribute(stream:string, attibute:any) {
         this.attributes.set(stream, attibute)
+    }
+
+    public getBitrate(stream:string): any {
+        return this.bitrates.get(stream)
+    }
+
+    public setBitrate(stream:string, bitrate: any) {
+        return this.bitrates.set(stream, bitrate)
     }
     
     public dumps(): any {

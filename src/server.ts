@@ -86,7 +86,7 @@ export default class Server extends EventEmitter {
     }
 
     private startSocketio() {
-
+        
         this.io = socketio({
             pingInterval: 10000,
             pingTimeout: 5000,
