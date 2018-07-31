@@ -87,7 +87,7 @@ class Peer extends EventEmitter {
         })
 
         socket.on('disconnect', async () => {
-            socket.to(this.roomid).emit('peer_removed', {
+            socket.to(this.roomid).emit('peerRemoved', {
                 peer: this.dumps()
             })
             this.close()
@@ -352,10 +352,6 @@ class Peer extends EventEmitter {
 
             let attributes = this.room.getAttribute(outgoingStream.getId())
 
-            this.socket.emit('attributes', {
-                msid: outgoingStream.getId(),
-                attributes: attributes  
-            })
 
             this.socket.emit('offer', {
                 sdp: this.localSDP.toString(),
@@ -371,7 +367,7 @@ class Peer extends EventEmitter {
             room: this.room.dumps()
         })
 
-        this.socket.to(this.roomid).emit('peer_connected', {
+        this.socket.to(this.roomid).emit('peerConnected', {
             peer: this.dumps()
         })
 
@@ -414,7 +410,7 @@ class Peer extends EventEmitter {
         for (let stream of sdp.getStreams().values()) {
             if (!oldStreamIds.has(stream.getId())) {
                 // new stream 
-                this.socket.emit('stream_added', {
+                this.socket.emit('streamAdded', {
                     msid: stream.getId()
                 })
             }
@@ -456,7 +452,7 @@ class Peer extends EventEmitter {
             sdp: this.localSDP.toString(),
         })
 
-        this.socket.emit('stream_added', {
+        this.socket.emit('streamAdded', {
             msid: stream.getId()
         })
 
