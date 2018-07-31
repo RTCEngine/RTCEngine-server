@@ -149,7 +149,7 @@ class Peer extends EventEmitter {
     }
 
     // For outgoing stream 
-    public addStream(stream: any) {
+    public addOutgoingStream(stream: any) {
 
         if (this.outgoingStreams.get(stream.getId())) {
             log.error("addStream: outstream already exist", stream.getId())
@@ -187,11 +187,6 @@ class Peer extends EventEmitter {
 
         this.emit('renegotiationneeded', outgoingStream)
         this.emit('new-outgoing-stream', outgoingStream)
-    }
-
-    // For outgoing stream  TODO
-    public removeStream(stream: any) {
-
     }
 
     // publish stream 
@@ -344,7 +339,7 @@ class Peer extends EventEmitter {
         const streams = this.room.getStreams()
 
         for (let stream of streams) {
-            this.addStream(stream)
+            this.addOutgoingStream(stream)
         }
 
         // just in case 

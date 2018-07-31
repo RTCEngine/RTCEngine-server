@@ -59,7 +59,7 @@ export default class Room extends EventEmitter {
 
             for (let other of this.peers.values()) {
                 if (peer.userid !== other.userid) {
-                    other.addStream(stream)
+                    other.addOutgoingStream(stream)
                 }
             }
         })
