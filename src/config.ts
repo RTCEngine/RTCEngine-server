@@ -1,7 +1,6 @@
 
 const CodecInfo	= require('semantic-sdp').CodecInfo
 
-
 export default {
     debug: '*',
     server: {
@@ -13,6 +12,10 @@ export default {
     turnServer: {
         urls: ['turn:101.201.141.179:3478'],
         secret: 'dotEngine_turn001',
+    },
+    recorder: {
+        record: true,
+        refreshPeriod: 5000 
     },
     media: {
         debug: true,
