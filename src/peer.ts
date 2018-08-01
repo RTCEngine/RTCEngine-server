@@ -289,7 +289,7 @@ class Peer extends EventEmitter {
         this.transport = endpoint.createTransport(offer)
 
         this.transport.on('targetbitrate', (bitrate:number) => {
-
+            
             log.debug('transport:bitrate', bitrate)
         })
 
@@ -320,11 +320,6 @@ class Peer extends EventEmitter {
         if (videoOffer) {
             videoOffer.setDirection(Direction.SENDRECV)
             const video = videoOffer.answer(config.media.capabilities.video)
-            if(video.getBitrate() == 0){
-                log.error("client does not set bitrate")
-                video.setBitrate(500) // if client does not set bitrate, we should set that in server side 
-                this.bitrate = video.getBitrate()
-            }
             answer.addMedia(video)
         }
 
@@ -351,7 +346,6 @@ class Peer extends EventEmitter {
         this.on('renegotiationneeded', (outgoingStream) => {
 
             let attributes = this.room.getAttribute(outgoingStream.getId())
-
 
             this.socket.emit('offer', {
                 sdp: this.localSDP.toString(),
@@ -420,6 +414,7 @@ class Peer extends EventEmitter {
     private async handleAddStream(data: any) {
 
         const sdp = SDPInfo.process(data.sdp)
+
         const streamId = data.stream.msid
         const bitrate = data.stream.bitrate
         const attributes = data.stream.attributes 
@@ -441,16 +436,15 @@ class Peer extends EventEmitter {
 
         // we set bitrate  
         for(let media of this.localSDP.getMediasByType('video')){
-            if (media.getId() === streamId) {
-                log.debug('setBitrate ===============')
-                media.setBitrate(bitrate)
-            }
+            media.setBitrate(bitrate)
         }
 
         // check planb and Unified plan 
         this.socket.emit('answer', {
             sdp: this.localSDP.toString(),
+            room: this.room.dumps()
         })
+
 
         this.socket.emit('streamAdded', {
             msid: stream.getId()
