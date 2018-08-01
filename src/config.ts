@@ -13,9 +13,9 @@ export default {
         urls: ['turn:101.201.141.179:3478'],
         secret: 'dotEngine_turn001',
     },
+    // to disable recorder  comment this
     recorder: {
-        record: true,
-        refreshPeriod: 5000 
+        refreshPeriod: 10000  // ten seconds
     },
     media: {
         debug: true,

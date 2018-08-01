@@ -202,6 +202,25 @@ class Peer extends EventEmitter {
 
         this.emit('new-incoming-stream', incomingStream)
 
+        
+        // now start to record 
+        if (!config.recorder) {
+            return
+        }
+
+        const filename = 'recordings/' + incomingStream.id + '-' + Date.now() + '.mp4'
+
+        const recorder = MediaServer.createRecorder(filename, {
+            refresh:  config.recorder.refreshPeriod || 10000
+        })
+
+        recorder.record(incomingStream)
+
+        incomingStream.on('stopped', () => {
+
+            recorder.stop()
+        })
+
     }
 
     // unpublish stream
