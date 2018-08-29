@@ -40,7 +40,7 @@ export default class Server extends EventEmitter {
         this.server = this.app.listen(config.server.port, config.server.host)
 
         //create media server
-        this.endpoint = MediaServer.createEndpoint(config.server.host);
+        this.endpoint = MediaServer.createEndpoint(config.media.endpoint);
 
         //configure application
         this.config()
@@ -127,4 +127,11 @@ export default class Server extends EventEmitter {
         })
     }
 
+    public dumps() {
+        let info = []
+        for (const room of this.rooms.values()) {
+            info.push(room.dumps)
+        }
+        return info
+    }
 }

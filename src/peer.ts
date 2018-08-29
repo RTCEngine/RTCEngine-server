@@ -202,9 +202,8 @@ class Peer extends EventEmitter {
 
         this.emit('new-incoming-stream', incomingStream)
 
-        
         // now start to record 
-        if (!config.recorder) {
+        if (!(config.recorder && config.recorder.enable)) {
             return
         }
 
@@ -217,7 +216,6 @@ class Peer extends EventEmitter {
         recorder.record(incomingStream)
 
         incomingStream.on('stopped', () => {
-
             recorder.stop()
         })
 
@@ -252,16 +250,6 @@ class Peer extends EventEmitter {
     }
 
     public dumps():any {
-        /*
-        streams: [
-            {
-                id: string,
-                bitrate:int,
-                attributes:any
-                }
-            }
-        ]
-        */
         const streams = this.incomingStreamids.map((streamId) => {
             return {
                 id: streamId,
@@ -308,7 +296,7 @@ class Peer extends EventEmitter {
         this.transport = endpoint.createTransport(offer)
 
         this.transport.on('targetbitrate', (bitrate:number) => {
-            
+
             log.debug('transport:bitrate', bitrate)
         })
 
@@ -364,7 +352,7 @@ class Peer extends EventEmitter {
         // After first  addStream, we should listen 'renegotiationneeded'
         this.on('renegotiationneeded', (outgoingStream) => {
 
-            let attributes = this.room.getAttribute(outgoingStream.getId())
+            log.debug('renegotiationneeded',  this.localSDP.getStreams())
 
             this.socket.emit('offer', {
                 sdp: this.localSDP.toString(),
@@ -452,6 +440,8 @@ class Peer extends EventEmitter {
         }
 
         this.publishStream(stream)
+
+        
 
         // we set bitrate  
         for(let media of this.localSDP.getMediasByType('video')){
