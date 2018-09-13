@@ -39,9 +39,12 @@ export default class Server extends EventEmitter {
         //create http server 
         this.server = this.app.listen(config.server.port, config.server.host)
 
+        
         //create media server
-        this.endpoint = MediaServer.createEndpoint(config.media.endpoint);
+        this.endpoint = MediaServer.createEndpoint(config.media.endpoint)
 
+        console.log(this.endpoint.bundle.GetLocalPort())
+       
         //configure application
         this.config()
 

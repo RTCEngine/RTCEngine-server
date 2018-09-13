@@ -5,9 +5,9 @@ export default {
     debug: '*',
     server: {
         port: 3888,
-        host: '127.0.0.1',
+        host: '0.0.0.0',
         secret: 'test_secret',
-        externalUrl: 'http://127.0.0.1:3888/'
+        externalUrl: 'http://192.168.202.208:3888/'
     },
     turnServer: {
         urls: ['turn:101.201.141.179:3478'],
@@ -20,10 +20,10 @@ export default {
     },
     media: {
         debug: true,
-        endpoint: '127.0.0.1',
+        endpoint: '192.168.202.208',
         ultraDebug: true,
         rtcMinPort: 10000,
-        rtcMaxPort: 20000,
+        rtcMaxPort: 10002,
         capabilities: {
             audio: {
                 codecs: ['opus'],

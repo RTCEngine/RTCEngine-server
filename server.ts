@@ -4,11 +4,18 @@ import * as program from 'commander'
 import * as dotenv from 'dotenv'
 import ip  = require('ip')
 
+const MediaServer = require('medooze-media-server')
+
 dotenv.config()
 
 import Server from './src/server'
 import config from './src/config'
 
+MediaServer.enableDebug(true);
+MediaServer.enableUltraDebug(true);
+
+//Restrict port range
+MediaServer.setPortRange(10000,10002);
 
 if (process.env.DEV) {
     //config.server.host = ip.address()
