@@ -4,24 +4,22 @@ import Peer from './peer'
 import config from './config'
 import Logger from './logger'
 
-const CodecInfo = require('semantic-sdp').CodecInfo
-
 const log = new Logger('room')
 
 export default class Room extends EventEmitter {
 
-    private roomid: string
+    private roomId: string
     private closed: boolean
     private peers: Map<string, Peer>
     private attributes: Map<string,any>
     private bitrates: Map<string,any>
 
-    constructor(roomid: string, endpoint: any) {
+    constructor(room: string) {
 
         super()
         this.setMaxListeners(Infinity)
 
-        this.roomid = roomid
+        this.roomId = room
         this.closed = false
         this.peers = new Map()
         this.attributes = new Map()
@@ -29,7 +27,7 @@ export default class Room extends EventEmitter {
     }
 
     public getId():string {
-        return this.roomid
+        return this.roomId
     }
 
     public getPeers(): Peer[] {
@@ -46,34 +44,30 @@ export default class Room extends EventEmitter {
 
     public addPeer(peer: Peer) {
 
-        if (this.peers.has(peer.userid)) {
+        if (this.peers.has(peer.userId)) {
             log.warn('peer alread in room')
             return
         }
 
-        this.emit('add-peer', peer)
+        this.peers.set(peer.userId, peer)
 
-        this.peers.set(peer.userid, peer)
-
-        peer.on('new-incoming-stream', (stream) => {
+        peer.on('stream', (stream) => {
 
             for (let other of this.peers.values()) {
-                if (peer.userid !== other.userid) {
+                if (peer.userId !== other.userId) {
                     other.addOutgoingStream(stream)
                 }
             }
         })
 
         peer.on('close', () => {
-
-            this.peers.delete(peer.userid)
+            
+            this.peers.delete(peer.userId)
 
             this.emit('peers', this.peers.values())
 
-            this.emit('remove-peer', peer)
-
             if (this.peers.size == 0) {
-                log.debug('last peer in the room left, closeing the room ', this.roomid)
+                log.debug('last peer in the room left, closeing the room ', this.roomId)
                 this.close()
             }
         })
@@ -86,11 +80,11 @@ export default class Room extends EventEmitter {
             return
         }
 
+        this.closed = true
+
         for (let peer of this.peers.values()) {
             peer.close()
         }
-
-        this.closed = true
 
         this.emit('close')
     }
@@ -124,7 +118,7 @@ export default class Room extends EventEmitter {
     
     public dumps(): any {
         let info = {
-            id: this.roomid,
+            id: this.roomId,
             peers: []
         }
         for (let peer of this.peers.values()) {

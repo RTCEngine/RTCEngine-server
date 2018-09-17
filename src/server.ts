@@ -22,46 +22,45 @@ import { EventEmitter } from 'events'
 
 export default class Server extends EventEmitter {
 
-    public app: express.Application
-    public server: http.Server
     public endpoint: any
-    public rooms: Map<string, Room> = new Map()
-    public peers: Map<string, Peer> = new Map()
-    public io: socketio.Server
+
+    private app: express.Application
+    private httpServer: http.Server
+   
+    private rooms: Map<string, Room> = new Map()
+    private peers: Map<string, Peer> = new Map()
+    private socketServer: socketio.Server
 
 
-    constructor() {
+    constructor(params:any) {
         //create expressjs application
         super()
 
         this.app = express()
-
-        //create http server 
-        this.server = this.app.listen(config.server.port, config.server.host)
-
         
         //create media server
         this.endpoint = MediaServer.createEndpoint(config.media.endpoint)
-
-        console.log(this.endpoint.bundle.GetLocalPort())
        
         //configure application
         this.config()
 
         //add routes
         this.routes()
+    }
 
-        //socketio
-        this.startSocketio()
+    public start(port:number, hostname:string, callback?:Function) {
+        
+        this.httpServer = this.app.listen(port, hostname, callback)
+
+        this.startSocketServer()
 
     }
 
+    private config() {
 
-    public config() {
         //add static paths
-
         this.app.use(express.static('public'))
-
+        
         this.app.use(cors())
 
         //mount json form parser
@@ -75,7 +74,7 @@ export default class Server extends EventEmitter {
         //mount override?
         this.app.use(methodOverride())
 
-        // catch 404 and forward to error handler
+        //catch 404 and forward to error handler
         this.app.use(function(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
             err.status = 404
             next(err)
@@ -88,42 +87,39 @@ export default class Server extends EventEmitter {
         this.app.use(apiRouter)
     }
 
-    private startSocketio() {
+    private startSocketServer() {
         
-        this.io = socketio({
+        this.socketServer = socketio({
             pingInterval: 10000,
             pingTimeout: 5000,
             transports: ['websocket'] 
         })
 
-        this.io.on('connection', async (socket:SocketIO.Socket) => {
+        this.socketServer.on('connection', async (socket:SocketIO.Socket) => {
             let peer = new Peer(socket,this)
             this.peers.set(peer.id, peer)
-
-            this.emit('new-peer', peer)
 
             peer.on('close', () => {
                 this.peers.delete(peer.id)
             })
         })
 
-        this.io.attach(this.server)
+        this.socketServer.attach(this.httpServer)
     }
+
+    
 
     public getRooms(): Room[] {
         return Array.from(this.rooms.values())
     }
 
     public getRoom(room: string): Room {
-
         return this.rooms.get(room)
     }
 
     public addRoom(room: Room, peer:Peer) {
 
         this.rooms.set(room.getId(), room)
-
-        this.emit('new-room', room, peer)
         
         room.on('close', () => {
             this.rooms.delete(room.getId())

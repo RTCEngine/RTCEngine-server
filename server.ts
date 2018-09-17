@@ -1,5 +1,3 @@
-
-import * as http from 'http'
 import * as program from 'commander'
 import * as dotenv from 'dotenv'
 import ip  = require('ip')
@@ -22,7 +20,9 @@ if (process.env.DEV) {
     // console.log('listen on ', config.server.host,config.server.port)
 }
 
-const server = new Server()
+const server = new Server({})
+
+server.start(8080, 'localhost')
 
 
 

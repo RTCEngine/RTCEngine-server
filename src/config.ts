@@ -2,10 +2,8 @@
 const CodecInfo	= require('semantic-sdp').CodecInfo
 
 export default {
-    debug: '*',
+   
     server: {
-        port: 3888,
-        host: '0.0.0.0',
         secret: 'test_secret',
         externalUrl: 'http://192.168.202.208:3888/'
     },
