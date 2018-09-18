@@ -110,11 +110,11 @@ class Peer extends EventEmitter {
         this.closed = true
 
         if (this.socket) {
-            this.socket.disconnect()
+            this.socket.leaveAll()
         }
 
         if (this.socket) {
-            this.socket.leaveAll()
+            this.socket.disconnect()
         }
 
         for (let stream of this.incomingStreams.values()) {
@@ -135,13 +135,24 @@ class Peer extends EventEmitter {
         this.emit('close')
     }
 
+    public removeOutgoingStream(stream: any) {
 
-    
-    // For outgoing stream 
+        if (!this.outgoingStreams.get(stream.getId())) {
+            log.error("removeOutgoingStream: outstream does not exist", stream.getId())
+            return
+        }
+
+        const outgoingStream = this.outgoingStreams.get(stream.getId())
+
+        this.localSdp.removeStream(stream.getStreamInfo())
+
+        outgoingStream.stop()
+    }
+
     public addOutgoingStream(stream: any, emit = true) {
 
         if (this.outgoingStreams.get(stream.getId())) {
-            log.error("addStream: outstream already exist", stream.getId())
+            log.error("addOutgoingStream: outstream already exist", stream.getId())
             return
         }
 

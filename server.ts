@@ -11,8 +11,6 @@ import Server from './src/server'
 MediaServer.enableDebug(true);
 MediaServer.enableUltraDebug(true);
 
-//Restrict port range
-MediaServer.setPortRange(10000,10002);
 
 
 const server = new Server({})
