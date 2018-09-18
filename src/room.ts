@@ -44,25 +44,25 @@ export default class Room extends EventEmitter {
 
     public addPeer(peer: Peer) {
 
-        if (this.peers.has(peer.userId)) {
+        if (this.peers.has(peer.getId())) {
             log.warn('peer alread in room')
             return
         }
 
-        this.peers.set(peer.userId, peer)
+        this.peers.set(peer.getId(), peer)
 
         peer.on('stream', (stream) => {
 
             for (let other of this.peers.values()) {
-                if (peer.userId !== other.userId) {
+                if (peer.getId() !== other.getId()) {
                     other.addOutgoingStream(stream)
                 }
             }
         })
 
         peer.on('close', () => {
-            
-            this.peers.delete(peer.userId)
+
+            this.peers.delete(peer.getId())
 
             this.emit('peers', this.peers.values())
 

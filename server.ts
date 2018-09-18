@@ -7,7 +7,6 @@ const MediaServer = require('medooze-media-server')
 dotenv.config()
 
 import Server from './src/server'
-import config from './src/config'
 
 MediaServer.enableDebug(true);
 MediaServer.enableUltraDebug(true);
@@ -15,14 +14,13 @@ MediaServer.enableUltraDebug(true);
 //Restrict port range
 MediaServer.setPortRange(10000,10002);
 
-if (process.env.DEV) {
-    //config.server.host = ip.address()
-    // console.log('listen on ', config.server.host,config.server.port)
-}
 
 const server = new Server({})
 
-server.start(8080, 'localhost')
+server.start(3888, '0.0.0.0', () => {
+    
+    console.log('start =========================')
+})
 
 
 

@@ -1,5 +1,4 @@
 import { EventEmitter } from 'events'
-import * as uuid from 'uuid'
 
 import Message from './message'
 import Room from './room'
@@ -26,15 +25,14 @@ const log = new Logger('peer')
 
 class Peer extends EventEmitter {
 
-    public id: string
-    public usePlanB: boolean = true
-    public socket: SocketIO.Socket
-    public userId: string
-    public roomId: string
-    public closed: boolean = false
+    private usePlanB: boolean = true
+    private socket: SocketIO.Socket
+    private userId: string
+    private roomId: string
+    private closed: boolean = false
     // after Unified Plan is supported, we should set bitrate for every mediasource
-    public bitrate: number = 0
-    public room: Room
+    private bitrate: number = 0
+    private room: Room
 
     private incomingStreams: Map<string, any> = new Map()
     private outgoingStreams: Map<string, any> = new Map()
@@ -46,14 +44,11 @@ class Peer extends EventEmitter {
     private transport: any
 
 
-
     constructor(socket: SocketIO.Socket, server: Server) {
         super()
 
         this.server = server
         this.socket = socket
-
-        this.id = uuid.v4()
 
         socket.on('join', async (data:any, callback?:Function) => {
             await this.handleJoin(data)
@@ -86,8 +81,22 @@ class Peer extends EventEmitter {
             })
             this.close()
         })
+    }
 
-    
+    public getId() {
+        return this.userId
+    }
+
+    public getIncomingStreams(): any {
+        return this.incomingStreams.values()
+    }
+
+    public getLocalSDP() {
+        return this.localSdp
+    }
+
+    public getRemoteSDP() {
+        return this.remoteSdp
     }
 
     public close() {
@@ -126,22 +135,8 @@ class Peer extends EventEmitter {
         this.emit('close')
     }
 
-    public async send(msg: any) {
-        try {
-            this.socket.send(JSON.stringify(msg))
-        } catch (error) {
-            log.debug('peer send error', error)
-        }
-    }
 
-    public getIncomingStreams(): any {
-        return this.incomingStreams.values()
-    }
-
-    public get incomingStreamids(): string[] {
-        return Array.from(this.incomingStreams.keys())
-    }
-
+    
     // For outgoing stream 
     public addOutgoingStream(stream: any, emit = true) {
 
@@ -162,10 +157,6 @@ class Peer extends EventEmitter {
         
         stream.on('stopped', () => {
 
-            if (!this.outgoingStreams) {
-                return
-            }
-
             if (this.localSdp) {
                 this.localSdp.removeStream(info)
             }
@@ -185,6 +176,7 @@ class Peer extends EventEmitter {
             this.emit('renegotiationneeded', outgoingStream)
         }
     }
+
 
 
     public addStream(stream: any) {
@@ -216,7 +208,6 @@ class Peer extends EventEmitter {
         incomingStream.on('stopped', () => {
             recorder.stop()
         })
-
     }
 
 
@@ -237,16 +228,12 @@ class Peer extends EventEmitter {
     }
 
 
-    public getLocalSDP() {
-        return this.localSdp
-    }
 
-    public getRemoteSDP() {
-        return this.remoteSdp
-    }
 
     public dumps():any {
-        const streams = this.incomingStreamids.map((streamId) => {
+
+        const incomingStreamids = Array.from(this.incomingStreams.keys())
+        const streams = incomingStreamids.map((streamId) => {
             return {
                 id: streamId,
                 bitrate: this.room.getBitrate(streamId),
@@ -279,7 +266,7 @@ class Peer extends EventEmitter {
 
         if (!this.room) {
             this.room = new Room(this.roomId)
-            this.server.addRoom(this.room, this)
+            this.server.addRoom(this.room)
         }
 
         this.room.addPeer(this)
@@ -292,7 +279,6 @@ class Peer extends EventEmitter {
         this.transport = endpoint.createTransport(offer)
 
         this.transport.on('targetbitrate', (bitrate:number) => {
-
             log.debug('transport:bitrate', bitrate)
         })
 

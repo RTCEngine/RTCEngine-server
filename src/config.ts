@@ -5,7 +5,7 @@ export default {
    
     server: {
         secret: 'test_secret',
-        externalUrl: 'http://192.168.202.208:3888/'
+        externalUrl: 'http://192.168.203.8:3888/'
     },
     turnServer: {
         urls: ['turn:101.201.141.179:3478'],
@@ -18,7 +18,7 @@ export default {
     },
     media: {
         debug: true,
-        endpoint: '192.168.202.208',
+        endpoint: '192.168.203.8',
         ultraDebug: true,
         rtcMinPort: 10000,
         rtcMaxPort: 10002,

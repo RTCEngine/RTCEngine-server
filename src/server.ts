@@ -28,7 +28,7 @@ export default class Server extends EventEmitter {
     private httpServer: http.Server
    
     private rooms: Map<string, Room> = new Map()
-    private peers: Map<string, Peer> = new Map()
+    private peers: Set<Peer> = new Set()
     private socketServer: socketio.Server
 
 
@@ -60,7 +60,7 @@ export default class Server extends EventEmitter {
 
         //add static paths
         this.app.use(express.static('public'))
-        
+
         this.app.use(cors())
 
         //mount json form parser
@@ -97,10 +97,10 @@ export default class Server extends EventEmitter {
 
         this.socketServer.on('connection', async (socket:SocketIO.Socket) => {
             let peer = new Peer(socket,this)
-            this.peers.set(peer.id, peer)
+            this.peers.add(peer)
 
             peer.on('close', () => {
-                this.peers.delete(peer.id)
+                this.peers.delete(peer)
             })
         })
 
@@ -117,7 +117,7 @@ export default class Server extends EventEmitter {
         return this.rooms.get(room)
     }
 
-    public addRoom(room: Room, peer:Peer) {
+    public addRoom(room: Room) {
 
         this.rooms.set(room.getId(), room)
         
