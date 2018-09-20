@@ -427,27 +427,40 @@ class Peer extends EventEmitter {
 
     private async handleConfigure(data: any) {
 
-        if ('local' in data) {
+
+        const streamId = data.msid
+
+        // this is a local stream 
+        if (this.incomingStreams.get(streamId)) {
             this.socket.to(this.roomId).emit('configure', data)
             return
         }
 
-        // we only mute video for now 
-        if ('remote' in data && 'video' in data) {
-            let videoMsid = data.msid
-            let disable = !data.video
+        if (!this.outgoingStreams.get(streamId)) {
+            return
+        }
 
-            let outgoingStream = this.outgoingStreams.get(videoMsid)
+        // this is a remote stream 
+        const outgoingStream = this.outgoingStreams.get(streamId)
 
-            if (!outgoingStream){
-                return
-            }
+        if ('video' in data) {
+
+            let muting = data.muting 
 
             for (let track of outgoingStream.getVideoTracks()) {
-                track.mute(disable)
+                track.mute(muting)
             }
-
         }
+        
+        if ('audio' in data) {
+            
+            let muting = data.muting
+
+            for (let track of outgoingStream.getAudioTracks()) {
+                track.mute(muting)
+            }
+        }
+
     }
 
 }
