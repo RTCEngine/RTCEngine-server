@@ -1,6 +1,3 @@
-
-const CodecInfo	= require('semantic-sdp').CodecInfo
-
 export default {
    
     server: {
