@@ -281,7 +281,7 @@ class Peer extends EventEmitter {
         }
 
         this.room.addPeer(this)
-
+        
         this.socket.join(this.roomId)
 
         const endpoint = this.server.endpoint
@@ -300,27 +300,42 @@ class Peer extends EventEmitter {
         const ice = this.transport.getLocalICEInfo()
         const candidates = endpoint.getLocalCandidates()
 
-        const answer = new SDPInfo()
+        // const answer = new SDPInfo()
 
-        answer.setDTLS(dtls)
-        answer.setICE(ice)
-        answer.addCandidates(candidates)
+        // answer.setDTLS(dtls)
+        // answer.setICE(ice)
+        // answer.addCandidates(candidates)
 
-        const audioOffer = offer.getMedia('audio')
+        // const audioOffer = offer.getMedia('audio')
 
-        if (audioOffer) {
-            audioOffer.setDirection(Direction.SENDRECV)
-            const audio = audioOffer.answer(config.media.capabilities.audio)
-            answer.addMedia(audio)
+        // if (audioOffer) {
+        //     audioOffer.setDirection(Direction.SENDRECV)
+        //     const audio = audioOffer.answer(config.media.capabilities.audio)
+        //     answer.addMedia(audio)
+        // }
+
+        // const videoOffer = offer.getMedia('video')
+
+        // if (videoOffer) {
+        //     videoOffer.setDirection(Direction.SENDRECV)
+        //     const video = videoOffer.answer(config.media.capabilities.video)
+        //     answer.addMedia(video)
+        // }
+
+        if (offer.getMedia('audio')) {
+            offer.getMedia('audio').setDirection(Direction.SENDRECV)
         }
 
-        const videoOffer = offer.getMedia('video')
-
-        if (videoOffer) {
-            videoOffer.setDirection(Direction.SENDRECV)
-            const video = videoOffer.answer(config.media.capabilities.video)
-            answer.addMedia(video)
+        if (offer.getMedia('video')) {
+            offer.getMedia('video').setDirection(Direction.SENDRECV)
         }
+
+        const answer = offer.answer({
+            dtls    : this.transport.getLocalDTLSInfo(),
+            ice     : this.transport.getLocalICEInfo(),
+            candidates: endpoint.getLocalCandidates(),
+            capabilities: config.media.capabilities
+        })
 
         this.transport.setLocalProperties({
             audio: answer.getMedia('audio'),
@@ -386,6 +401,9 @@ class Peer extends EventEmitter {
 
         this.addStream(stream)
 
+        for (const trackInfo of stream.getTracks().values()) {
+            console.log(trackInfo.plain())
+        }
 
         // we set bitrate  
         for(let media of this.localSdp.getMediasByType('video')){

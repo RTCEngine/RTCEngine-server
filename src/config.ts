@@ -2,7 +2,7 @@ export default {
    
     server: {
         secret: 'test_secret',
-        externalUrl: 'http://192.168.203.8:3888/'
+        externalUrl: 'http://192.168.201.152:3888/'
     },
     turnServer: {
         urls: ['turn:101.201.141.179:3478'],
@@ -15,7 +15,7 @@ export default {
     },
     media: {
         debug: true,
-        endpoint: '192.168.203.8',
+        endpoint: '192.168.201.152',
         ultraDebug: true,
         rtcMinPort: 10000,
         rtcMaxPort: 10002,
@@ -28,7 +28,8 @@ export default {
                 ]
             },
             video: {
-                codecs: ['vp8','h264;packetization-mode=1'],
+                //codecs: ['vp8','h264;packetization-mode=1'],
+                codecs: ['h264;packetization-mode=1;profile-level-id=42e01f'],
                 rtx:    true,
                 rtcpfbs:    [
                     { 'id': 'transport-cc'},
