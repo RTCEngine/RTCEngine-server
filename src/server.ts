@@ -17,12 +17,13 @@ import Peer from './peer'
 import config from './config'
 
 import apiRouter from './api'
+import socketHandle from './signalling'
 import { EventEmitter } from 'events'
 
 
 export default class Server extends EventEmitter {
 
-    public endpoint: any
+    private endpoint: any
 
     private app: express.Application
     private httpServer: http.Server
@@ -96,18 +97,16 @@ export default class Server extends EventEmitter {
         })
 
         this.socketServer.on('connection', async (socket:SocketIO.Socket) => {
-            let peer = new Peer(socket,this)
-            this.peers.add(peer)
 
-            peer.on('close', () => {
-                this.peers.delete(peer)
-            })
+            await socketHandle(socket, this)
         })
 
         this.socketServer.attach(this.httpServer)
     }
 
-    
+    public getEndpoint() {
+        return this.endpoint
+    }
 
     public getRooms(): Room[] {
         return Array.from(this.rooms.values())

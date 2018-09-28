@@ -23,6 +23,7 @@ const CodecInfo		= SemanticSDP.CodecInfo
 
 const log = new Logger('peer')
 
+
 class Peer extends EventEmitter {
 
     private usePlanB: boolean = true
@@ -86,17 +87,64 @@ class Peer extends EventEmitter {
     public getId() {
         return this.userId
     }
-
-    public getIncomingStreams(): any {
-        return this.incomingStreams.values()
-    }
-
+    
     public getLocalSDP() {
         return this.localSdp
     }
 
     public getRemoteSDP() {
         return this.remoteSdp
+    }
+
+    public getIncomingStreams(): Map<string,any> {
+        return this.incomingStreams
+    }
+
+    public getOutgoingStreams(): Map<string,any> {
+        return this.outgoingStreams
+    }
+
+    public init(data:any, room:Room) {
+
+        this.roomId = data.room
+        this.userId = data.user
+
+        this.room = room
+
+        const offer = SDPInfo.process(data.sdp)
+
+        if ('planb' in data) {
+            this.usePlanB = !!<boolean>data.planb
+        }
+
+        const endpoint = this.server.getEndpoint()
+
+        this.transport = endpoint.createTransport(offer)
+
+        this.transport.setRemoteProperties(offer)
+
+        if (offer.getMedia('audio')) {
+            offer.getMedia('audio').setDirection(Direction.SENDRECV)
+        }
+
+        if (offer.getMedia('video')) {
+            offer.getMedia('video').setDirection(Direction.SENDRECV)
+        }
+
+        const answer = offer.answer({
+            dtls    : this.transport.getLocalDTLSInfo(),
+            ice     : this.transport.getLocalICEInfo(),
+            candidates: endpoint.getLocalCandidates(),
+            capabilities: config.media.capabilities
+        })
+
+        this.transport.setLocalProperties({
+            audio: answer.getMedia('audio'),
+            video: answer.getMedia('video')
+        })
+
+        this.localSdp = answer
+        this.remoteSdp = offer
     }
 
     public close() {
@@ -135,19 +183,52 @@ class Peer extends EventEmitter {
         this.emit('close')
     }
 
-    public removeOutgoingStream(stream: any) {
+    public unsubIncomingStream(incomingStream: any) {
 
-        if (!this.outgoingStreams.get(stream.getId())) {
-            log.error("removeOutgoingStream: outstream does not exist", stream.getId())
+        if (!this.outgoingStreams.get(incomingStream.getId())) {
+            log.error("removeOutgoingStream: outstream does not exist", incomingStream.getId())
             return
         }
 
-        const outgoingStream = this.outgoingStreams.get(stream.getId())
+        const outgoingStream = this.outgoingStreams.get(incomingStream.getId())
 
-        this.localSdp.removeStream(stream.getStreamInfo())
+        this.localSdp.removeStream(incomingStream.getStreamInfo())
 
         outgoingStream.stop()
     }
+
+    public subIncomingStream(incomingStream: any,) {
+        
+        if (this.outgoingStreams.get(incomingStream.getId())) {
+            log.error("subIncomingStream: outstream already exist", incomingStream.getId())
+            return
+        }
+
+        const outgoingStream = this.transport.createOutgoingStream(incomingStream.getStreamInfo())
+        
+        this.localSdp.addStream(outgoingStream.getStreamInfo())
+
+        this.outgoingStreams.set(outgoingStream.getId(), outgoingStream)
+
+        outgoingStream.attachTo(incomingStream)
+
+        incomingStream.on('stopped', () => {
+
+            if (this.localSdp) {
+                this.localSdp.removeStream(outgoingStream.getStreamInfo())
+            }
+
+            outgoingStream.stop()
+
+            let exist = this.outgoingStreams.delete(outgoingStream.getId())
+
+            if(exist) {
+                this.emit('renegotiationneeded', outgoingStream)
+            }
+           
+        })
+
+    } 
 
     public addOutgoingStream(stream: any, emit = true) {
 
@@ -189,19 +270,24 @@ class Peer extends EventEmitter {
     }
 
 
-
-    public addStream(stream: any) {
+    public addStream(streamInfo: any) {
 
         if (!this.transport) {
             log.error('do not have transport')
             return
         }
 
-        const incomingStream = this.transport.createIncomingStream(stream)
+        const incomingStream = this.transport.createIncomingStream(streamInfo)
 
         this.incomingStreams.set(incomingStream.id, incomingStream)
 
-        this.emit('stream', incomingStream)
+
+        process.nextTick(() => {
+
+            this.emit('stream', incomingStream)
+        })
+
+        this.remoteSdp.addStream(streamInfo)
 
         // now start to record 
         if (!(config.recorder && config.recorder.enable)) {
@@ -222,41 +308,39 @@ class Peer extends EventEmitter {
     }
 
 
-    public removeStream(stream: any) {
+    public removeStream(streamInfo: any) {
 
         if (!this.transport) {
             log.error('do not have transport')
             return
         }
 
-        let incomingStream = this.incomingStreams.get(stream.getId())
+        let incomingStream = this.incomingStreams.get(streamInfo.getId())
 
         if (incomingStream) {
             incomingStream.stop()
         }
 
-        this.incomingStreams.delete(stream.getId())
+        this.incomingStreams.delete(streamInfo.getId())
+
+        this.remoteSdp.removeStream(streamInfo)
     }
-
-
 
 
     public dumps():any {
 
-        const incomingStreamids = Array.from(this.incomingStreams.keys())
-        const streams = incomingStreamids.map((streamId) => {
+        const incomingStreams = Array.from(this.incomingStreams.values())
+        const streams = incomingStreams.map((stream) => {
             return {
-                id: streamId,
-                bitrate: this.room.getBitrate(streamId),
-                attributes: this.room.getAttribute(streamId)
+                id: stream.getId(),
+                bitrate: this.room.getBitrate(stream.getId()),
+                attributes: this.room.getAttribute(stream.getId())
             }
         })
-
         const info = {
             id: this.userId,
             streams: streams
         }
-
         return info
     }
 
@@ -284,7 +368,7 @@ class Peer extends EventEmitter {
         
         this.socket.join(this.roomId)
 
-        const endpoint = this.server.endpoint
+        const endpoint = this.server.getEndpoint()
 
         // ice and dtls
         this.transport = endpoint.createTransport(offer)
@@ -296,31 +380,6 @@ class Peer extends EventEmitter {
         // audio and video
         this.transport.setRemoteProperties(offer)
 
-        const dtls = this.transport.getLocalDTLSInfo()
-        const ice = this.transport.getLocalICEInfo()
-        const candidates = endpoint.getLocalCandidates()
-
-        // const answer = new SDPInfo()
-
-        // answer.setDTLS(dtls)
-        // answer.setICE(ice)
-        // answer.addCandidates(candidates)
-
-        // const audioOffer = offer.getMedia('audio')
-
-        // if (audioOffer) {
-        //     audioOffer.setDirection(Direction.SENDRECV)
-        //     const audio = audioOffer.answer(config.media.capabilities.audio)
-        //     answer.addMedia(audio)
-        // }
-
-        // const videoOffer = offer.getMedia('video')
-
-        // if (videoOffer) {
-        //     videoOffer.setDirection(Direction.SENDRECV)
-        //     const video = videoOffer.answer(config.media.capabilities.video)
-        //     answer.addMedia(video)
-        // }
 
         if (offer.getMedia('audio')) {
             offer.getMedia('audio').setDirection(Direction.SENDRECV)
@@ -345,8 +404,7 @@ class Peer extends EventEmitter {
         this.localSdp = answer
         this.remoteSdp = offer
 
-        const streams = this.room.getStreams()
-
+        const streams = this.room.getIncomingStreams()
 
         for (let stream of streams) {
             this.addOutgoingStream(stream, false)

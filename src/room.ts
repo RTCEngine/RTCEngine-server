@@ -1,5 +1,7 @@
 import { EventEmitter } from 'events'
 
+const MediaServer = require('medooze-media-server')
+
 import Peer from './peer'
 import config from './config'
 import Logger from './logger'
@@ -13,6 +15,7 @@ export default class Room extends EventEmitter {
     private peers: Map<string, Peer>
     private attributes: Map<string,any>
     private bitrates: Map<string,any>
+    private endpoint: any
 
     constructor(room: string) {
 
@@ -23,11 +26,17 @@ export default class Room extends EventEmitter {
         this.closed = false
         this.peers = new Map()
         this.attributes = new Map()
-        this.bitrates = new Map()     
+        this.bitrates = new Map()
+
+        this.endpoint = MediaServer.createEndpoint(config.media.endpoint)
     }
 
     public getId():string {
         return this.roomId
+    }
+
+    public getEndpoint(): any {
+        return this.endpoint
     }
 
     public getPeers(): Peer[] {
@@ -89,12 +98,11 @@ export default class Room extends EventEmitter {
         this.emit('close')
     }
 
-    public getStreams(): any[] {
-        const streams: any[] = []
-
+    public getIncomingStreams(): Map<string,any> {
+        const streams = new Map()
         for (let peer of this.peers.values()) {
-            for (let stream of peer.getIncomingStreams()) {
-                streams.push(stream)
+            for (let stream of peer.getIncomingStreams().values()) {
+                streams.set(stream.getId(), stream)
             }
         }
         return streams
