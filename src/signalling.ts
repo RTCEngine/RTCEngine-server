@@ -47,7 +47,7 @@ async function socketHandle(socket: SocketIO.Socket, server: Server) {
 
         const streams = room.getIncomingStreams()
 
-        for (let stream of streams) {
+        for (let stream of streams.values()) {
             peer.subIncomingStream(stream)
         }
         
