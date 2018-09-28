@@ -4,9 +4,10 @@ export default {
         secret: 'test_secret',
         externalUrl: 'http://192.168.201.152:3888/'
     },
-    turnServer: {
-        urls: ['turn:101.201.141.179:3478'],
+    iceServer: {
+        urls: ['101.201.141.179:3478','101.201.141.179:3478'],
         secret: 'dotEngine_turn001',
+        transports: ['udp','tcp']
     },
     // to disable recorder  comment this
     recorder: {
@@ -19,6 +20,7 @@ export default {
         ultraDebug: true,
         rtcMinPort: 10000,
         rtcMaxPort: 10002,
+        iceTransportPolicy: 'all',   // 'all' or 'relay'
         capabilities: {
             audio: {
                 codecs: ['opus'],

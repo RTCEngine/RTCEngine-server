@@ -165,6 +165,8 @@ async function socketHandle(socket: SocketIO.Socket, server: Server) {
             peer: peer.dumps()
         })
 
+        socket.leaveAll()
+        
         peer.close()
 
     })

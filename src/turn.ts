@@ -3,29 +3,36 @@
 import * as uuid from 'uuid'
 import * as crypto from 'crypto'
 
-import config from './config'
 
-const secret = config.turnServer.secret
+import * as util from 'util'
 
-const genRestTurn = (turnUrls: string[]): any[] => {
+
+const genRestTurn = (urls: string[], transports:string[], secret:string): any[] => {
 
     let iceServers = []
-    for (let i = 0; i < turnUrls.length; i++) {
-        let turnUrl = turnUrls[i]
-        let timestamp = Math.round(new Date().getTime() / 1000) + 3600 * 24
-        let username = timestamp + ':' + uuid.v4()
-        let credential = crypto.createHmac('sha1', secret).update(username).digest().toString('base64')
-        
-        const url = {
-            url: turnUrl,
-            username: username,
-            credential: credential
-        }
 
-        iceServers.push(url)
+    let uris = []
+    for (let i = 0; i < urls.length; i++) {
+        let url = urls[i]
+        for (let j=0; j < transports.length; j++) {
+            let transport = transports[j]
+            uris.push(util.format('%s:%s?transport=%s', 'turn',url,transport))
+        }
     }
+
+    let timestamp = Math.round(new Date().getTime() / 1000) + 3600 * 24
+    let username = timestamp + ':' + uuid.v4()
+    let credential = crypto.createHmac('sha1', secret).update(username).digest().toString('base64')
+
+    const iceServer = {
+        uris : uris,
+        username : username,
+        credential : credential
+    }
+    iceServers.push(iceServer)
     return iceServers
 }
+
 
 export {
     genRestTurn

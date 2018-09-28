@@ -4,7 +4,6 @@ import Message from './message'
 import Room from './room'
 import Server from './server'
 import config from './config'
-import * as utils from './utils'
 import Logger from './logger'
 
 const MediaServer = require('medooze-media-server')
@@ -43,7 +42,7 @@ class Peer extends EventEmitter {
     private server: Server
     private transport: any
 
-
+    
     constructor(peerId:string, server: Server) {
         super()
 
@@ -74,8 +73,6 @@ class Peer extends EventEmitter {
 
     public init(data:any, room:Room) {
 
-        this.roomId = data.room
-        this.userId = data.user
 
         this.room = room
 
