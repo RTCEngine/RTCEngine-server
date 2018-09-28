@@ -1,4 +1,5 @@
 import * as socketio from 'socket.io'
+import * as jwt from 'jwt-simple'
 
 const SemanticSDP	= require('semantic-sdp')
 
@@ -18,26 +19,25 @@ import Peer from './peer'
 import config from './config'
 
 
+
 async function socketHandle(socket: SocketIO.Socket, server: Server) {
 
-    
-    const peer = new Peer(null,this)
-    let room = new Room('')
+    let token = socket.handshake.query.token
 
-    // we should init data here 
+    let data = jwt.decode(token,null,true)
+
+    const userId = data.user
+    const roomId = data.room
+
+    let room = server.getRoom(roomId) 
+
+    if (!room) {
+        room = server.Room(roomId)
+    }
+    
+    const peer = new Peer(userId,server)
 
     socket.on('join', async (data:any, callback?:Function) => {
-
-        const roomId = <string>data.room
-        const userId = <string>data.user
-
-        // todo 
-        let room = server.getRoom(roomId)
-
-        if (!room) {
-            room = new Room(roomId)
-            server.addRoom(room)
-        }
 
         room.addPeer(peer)
 
@@ -50,6 +50,15 @@ async function socketHandle(socket: SocketIO.Socket, server: Server) {
         for (let stream of streams) {
             peer.subIncomingStream(stream)
         }
+        
+        socket.emit('joined', {
+            sdp: peer.getLocalSDP().toString(),
+            room : room.dumps()
+        })
+
+        socket.to(roomId).emit('peerConnected', {
+            peer: peer.dumps()
+        })
 
         peer.on('renegotiationneeded', (outgoingStream) => {
 
@@ -58,15 +67,6 @@ async function socketHandle(socket: SocketIO.Socket, server: Server) {
                 room: room.dumps()
             })
 
-        })
-
-        socket.emit('joined', {
-            sdp: peer.getLocalSDP().toString(),
-            room : room.dumps()
-        })
-
-        socket.to(roomId).emit('peerConnected', {
-            peer: peer.dumps()
         })
 
     })
@@ -166,7 +166,7 @@ async function socketHandle(socket: SocketIO.Socket, server: Server) {
         })
 
         peer.close()
-        
+
     })
 
 }

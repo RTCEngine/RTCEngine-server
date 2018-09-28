@@ -112,19 +112,22 @@ export default class Server extends EventEmitter {
         return Array.from(this.rooms.values())
     }
 
-    public getRoom(room: string): Room {
-        return this.rooms.get(room)
+    public getRoom(roomId: string): Room {
+        return this.rooms.get(roomId)
     }
 
-    public addRoom(room: Room) {
-
-        this.rooms.set(room.getId(), room)
+    public Room(roomId:string) : Room {
+        const room = new Room(roomId)
         
+        this.rooms.set(room.getId(), room)
+
         room.on('close', () => {
             this.rooms.delete(room.getId())
         })
-    }
 
+        return room
+    }
+    
     public dumps() {
         let info = []
         for (const room of this.rooms.values()) {
