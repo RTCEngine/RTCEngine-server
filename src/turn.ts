@@ -25,7 +25,7 @@ const genRestTurn = (urls: string[], transports:string[], secret:string): any[] 
     let credential = crypto.createHmac('sha1', secret).update(username).digest().toString('base64')
 
     const iceServer = {
-        uris : uris,
+        urls : uris,
         username : username,
         credential : credential
     }
