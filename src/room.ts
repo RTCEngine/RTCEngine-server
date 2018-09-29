@@ -15,7 +15,9 @@ export default class Room extends EventEmitter {
     private peers: Map<string, Peer>
     private attributes: Map<string,any>
     private bitrates: Map<string,any>
+    private tracksMap: Map<string,string>
     private endpoint: any
+    private activeSpeakerDetector: any
 
     constructor(room: string) {
 
@@ -27,8 +29,26 @@ export default class Room extends EventEmitter {
         this.peers = new Map()
         this.attributes = new Map()
         this.bitrates = new Map()
+        this.tracksMap = new Map()
 
         this.endpoint = MediaServer.createEndpoint(config.media.endpoint)
+
+        this.activeSpeakerDetector = MediaServer.createActiveSpeakerDetector()
+
+        this.activeSpeakerDetector.setMinChangePeriod(100)
+
+        this.activeSpeakerDetector.on('activespeakerchanged', (track) => {
+
+            let peerId = this.tracksMap.get(track.getId())
+
+            if (peerId) {
+                this.emit('activespeakerchanged', peerId)
+                // just log for now 
+                log.debug('activespeakerchanged', peerId)
+            } 
+            
+        })
+
     }
 
     public getId():string {
@@ -67,6 +87,19 @@ export default class Room extends EventEmitter {
                     other.addOutgoingStream(stream)
                 }
             }
+
+            let audioTrack = stream.getAudioTracks()[0]
+
+            if (audioTrack) {
+                
+                this.activeSpeakerDetector.addSpeaker(audioTrack)
+
+                audioTrack.on('stoped', () => {
+                    this.activeSpeakerDetector.removeSpeaker(audioTrack)
+                })
+                
+            }
+
         })
 
         peer.on('close', () => {
@@ -93,6 +126,14 @@ export default class Room extends EventEmitter {
 
         for (let peer of this.peers.values()) {
             peer.close()
+        }
+
+        if (this.activeSpeakerDetector) {
+            this.activeSpeakerDetector.stop()
+        }
+
+        if (this.endpoint) {
+            this.endpoint.stop()
         }
 
         this.emit('close')

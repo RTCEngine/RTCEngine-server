@@ -23,8 +23,6 @@ import { EventEmitter } from 'events'
 
 export default class Server extends EventEmitter {
 
-    private endpoint: any
-
     private app: express.Application
     private httpServer: http.Server
    
@@ -39,8 +37,6 @@ export default class Server extends EventEmitter {
 
         this.app = express()
         
-        //create media server
-        this.endpoint = MediaServer.createEndpoint(config.media.endpoint)
        
         //configure application
         this.config()
@@ -103,11 +99,7 @@ export default class Server extends EventEmitter {
 
         this.socketServer.attach(this.httpServer)
     }
-
-    public getEndpoint() {
-        return this.endpoint
-    }
-
+    
     public getRooms(): Room[] {
         return Array.from(this.rooms.values())
     }

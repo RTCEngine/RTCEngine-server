@@ -81,8 +81,8 @@ class Peer extends EventEmitter {
         if ('planb' in data) {
             this.usePlanB = !!<boolean>data.planb
         }
-
-        const endpoint = this.server.getEndpoint()
+        
+        const endpoint = room.getEndpoint()
 
         this.transport = endpoint.createTransport(offer)
 
