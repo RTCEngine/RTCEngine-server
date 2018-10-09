@@ -121,29 +121,6 @@ client -> server
 
 ### offer 
 
-client -> server
-
-```
-{
-    sdp: str        // offer sdp 
-}
-```
-
-
-### answer 
-
-server -> client 
-
-```
-{
-    sdp: str,    // answer  sdp 
-    room: room_meta
-}
-```
-
-
-### offer 
-
 server -> client 
 
 ```
