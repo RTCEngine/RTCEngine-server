@@ -2,7 +2,7 @@ export default {
    
     server: {
         secret: 'test_secret',
-        externalUrl: 'http://192.168.201.152:3888/'
+        externalUrl: 'http://192.168.200.15:3888/'
     },
     iceServer: {
         urls: ['101.201.141.179:3478','101.201.141.179:3478'],
@@ -12,11 +12,12 @@ export default {
     // to disable recorder  comment this
     recorder: {
         enable: true,
-        refreshPeriod: 10000  // ten seconds
+        refreshPeriod: 10000,  // ten seconds
+        waitForIntra: false
     },
     media: {
         debug: true,
-        endpoint: '192.168.201.152',
+        endpoint: '192.168.200.15',
         ultraDebug: true,
         rtcMinPort: 10000,
         rtcMaxPort: 10002,

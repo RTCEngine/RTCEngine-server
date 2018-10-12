@@ -4,8 +4,9 @@
   "description": "RTCEngine server",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "tsc --watch | nodemon --inspect --delay 2.5 ./dist/server.js --watch dist"
+    "tsc": "./node_modules/typescript/bin/tsc",
+    "build": "./node_modules/typescript/bin/tsc",
+    "start": "./node_modules/typescript/bin/tsc --watch | nodemon --inspect --delay 2.5 ./dist/server.js --watch dist"
   },
   "repository": {
     "type": "git",

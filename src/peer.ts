@@ -255,7 +255,8 @@ class Peer extends EventEmitter {
         const filename = 'recordings/' + incomingStream.id + '-' + Date.now() + '.mp4'
 
         const recorder = MediaServer.createRecorder(filename, {
-            refresh:  config.recorder.refreshPeriod || 10000
+            refresh:  config.recorder.refreshPeriod || 10000,
+            waitForIntra: !!config.recorder.waitForIntra 
         })
 
         recorder.record(incomingStream)
