@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events'
 
-import Message from './message'
 import Room from './room'
 import Server from './server'
 import config from './config'

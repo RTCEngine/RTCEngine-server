@@ -2,7 +2,7 @@
 import { NextFunction, Response, Request, Router } from 'express'
 import * as cors from 'cors'
 import * as jwt from 'jwt-simple'
-import * as turn from './turn'
+import turn from './turn'
 import config from './config'
 import Logger from './logger'
 

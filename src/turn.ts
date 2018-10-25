@@ -34,6 +34,6 @@ const genRestTurn = (urls: string[], transports:string[], secret:string): any[] 
 }
 
 
-export {
+export default {
     genRestTurn
 }
