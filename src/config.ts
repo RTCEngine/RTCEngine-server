@@ -8,7 +8,17 @@ export default {
         urls: ['101.201.141.179:3478','101.201.141.179:3478'],
         secret: 'dotEngine_turn001',
         transports: ['udp','tcp']
+
     },
+
+    iceServers : [
+        {
+            host:  '101.201.141.179',
+            port:  3478,
+            secret: 'dotEngine_turn001',
+            transports: ['udp','tcp']
+        }
+    ],
     // to disable recorder  comment this
     recorder: {
         enable: true,
