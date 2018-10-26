@@ -28,9 +28,7 @@ export default class Server extends EventEmitter {
    
     private rooms: Map<string, Room> = new Map()
     private peers: Set<Peer> = new Set()
-    private socketServer: socketio.Server
-
-
+    
     constructor(params:any) {
         //create expressjs application
         super()
@@ -85,19 +83,10 @@ export default class Server extends EventEmitter {
     }
 
     private startSocketServer() {
-        
-        this.socketServer = socketio({
-            pingInterval: 10000,
-            pingTimeout: 5000,
-            transports: ['websocket'] 
-        })
-        
-        this.socketServer.on('connection', async (socket:SocketIO.Socket) => {
 
-            await socketHandle(socket, this)
-        })
+        socketHandle.socketServer.attach(this.httpServer)
 
-        this.socketServer.attach(this.httpServer)
+        socketHandle.setupSocketServer(this)
     }
     
     public getRooms(): Room[] {

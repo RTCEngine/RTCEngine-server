@@ -19,158 +19,162 @@ import Peer from './peer'
 import config from './config'
 
 
+const socketServer = socketio({
+    pingInterval: 10000,
+    pingTimeout: 5000,
+    transports: ['websocket'] 
+})
 
-async function socketHandle(socket: SocketIO.Socket, server: Server) {
 
-    let token = socket.handshake.query.token
+const setupSocketServer = async (server: Server) => {
 
-    let data = jwt.decode(token,null,true)
+    socketServer.on('connection', async (socket:SocketIO.Socket) => {
 
-    const userId = data.user
-    const roomId = data.room
+        let token = socket.handshake.query.token
 
-    let room = server.getRoom(roomId) 
+        let data = jwt.decode(token,null,true)
 
-    if (!room) {
-        room = server.Room(roomId)
-    }
+        const userId = data.user
+        const roomId = data.room
     
-    const peer = new Peer(userId,server)
-
-    socket.on('join', async (data:any, callback?:Function) => {
-
-        room.addPeer(peer)
-
-        socket.join(roomId)
-
-        peer.init(data, room)
-
-        const streams = room.getIncomingStreams()
-
-        for (let stream of streams.values()) {
-            peer.subIncomingStream(stream)
-        }
-        
-        socket.emit('joined', {
-            sdp: peer.getLocalSDP().toString(),
-            room : room.dumps()
-        })
-
-        socket.to(roomId).emit('peerConnected', {
-            peer: peer.dumps()
-        })
-
-        peer.on('renegotiationneeded', (outgoingStream) => {
-
-            socket.emit('offer', {
-                sdp: peer.getLocalSDP().toString(),
-                room: room.dumps()
-            })
-
-        })
-
-    })
-
-    socket.on('addStream', async (data:any, callback?:Function) => {
-
-        const sdp = SDPInfo.process(data.sdp)
-        const streamId = data.stream.msid
-        const bitrate = data.stream.bitrate
-        const attributes = data.stream.attributes
-
-        room.setBitrate(streamId, bitrate)
-        room.setAttribute(streamId, attributes)
-
-        const streamInfo = sdp.getStream(streamId)
-
-        if (!streamInfo) {
-            // this should not happen
-            return
+        let room = server.getRoom(roomId) 
+    
+        if (!room) {
+            room = server.Room(roomId)
         }
 
-        peer.addStream(streamInfo)
+        const peer = new Peer(userId,server)
 
-        // we set bitrate, need find a better way to do this
-        for (let media of peer.getLocalSDP().getMediasByType('video')) {
-            media.setBitrate(bitrate)
-        }
-
-        socket.emit('streamAdded', {
-            msid: streamInfo.getId()
-        })
-
-    })
-
-    socket.on('removeStream', async (data:any, callback?:Function) => {
-
-        const streamId = data.stream.msid
-
-        const stream = peer.getIncomingStreams().get(streamId)
-
-        peer.removeStream(stream.getStreamInfo())
-
-    })
-
-    socket.on('configure', async (data:any, callback?:Function) => {
-
-        const streamId = data.msid
-
-        // localstream 
-        if (peer.getIncomingStreams().get(streamId)) {
-            socket.to(room.getId()).emit('configure', data)
-            return
-        }
-
-        const outgoingStream = peer.getOutgoingStreams().get(streamId)
-        
-        if (!outgoingStream) {
-            return
-        }
-
-        if ('video' in data) {
+        socket.on('join', async (data:any, callback?:Function) => {
+    
+            room.addPeer(peer)
+    
+            socket.join(roomId)
+    
+            peer.init(data, room)
+    
+            const streams = room.getIncomingStreams()
+    
+            for (let stream of streams.values()) {
+                peer.subIncomingStream(stream)
+            }
             
-            let muting = data.muting
-
-            for (let track of outgoingStream.getVideoTracks()) {
-                track.mute(muting)
+            socket.emit('joined', {
+                sdp: peer.getLocalSDP().toString(),
+                room : room.dumps()
+            })
+    
+            socket.to(roomId).emit('peerConnected', {
+                peer: peer.dumps()
+            })
+    
+            peer.on('renegotiationneeded', (outgoingStream) => {
+    
+                socket.emit('offer', {
+                    sdp: peer.getLocalSDP().toString(),
+                    room: room.dumps()
+                })
+    
+            })
+    
+        })
+    
+        socket.on('addStream', async (data:any, callback?:Function) => {
+    
+            const sdp = SDPInfo.process(data.sdp)
+            const streamId = data.stream.msid
+            const bitrate = data.stream.bitrate
+            const attributes = data.stream.attributes
+    
+            room.setBitrate(streamId, bitrate)
+            room.setAttribute(streamId, attributes)
+    
+            const streamInfo = sdp.getStream(streamId)
+    
+            if (!streamInfo) {
+                // this should not happen
+                return
             }
-        }
-
-        if ('audio' in data) {
-
-            let muting = data.muting
-
-            for (let track of outgoingStream.getAudioTracks()) {
-                track.mute(muting)
+    
+            peer.addStream(streamInfo)
+    
+            // we set bitrate, need find a better way to do this
+            for (let media of peer.getLocalSDP().getMediasByType('video')) {
+                media.setBitrate(bitrate)
             }
-        }
-        
-    })
+    
+            socket.emit('streamAdded', {
+                msid: streamInfo.getId()
+            })
+    
+        })
+    
+        socket.on('removeStream', async (data:any, callback?:Function) => {
+    
+            const streamId = data.stream.msid
+    
+            const stream = peer.getIncomingStreams().get(streamId)
+    
+            peer.removeStream(stream.getStreamInfo())
+    
+        })
+    
+        socket.on('configure', async (data:any, callback?:Function) => {
+    
+            const streamId = data.msid
+    
+            // localstream 
+            if (peer.getIncomingStreams().get(streamId)) {
+                socket.to(room.getId()).emit('configure', data)
+                return
+            }
+    
+            const outgoingStream = peer.getOutgoingStreams().get(streamId)
+            
+            if (!outgoingStream) {
+                return
+            }
+    
+            if ('video' in data) {  
+                let muting = data.muting
 
-    socket.on('leave', async (data:any, callback?:Function) => {
+                for (let track of outgoingStream.getVideoTracks()) {
+                    track.mute(muting)
+                }
+            }
 
-        socket.disconnect(true)
-
-        peer.close()
-    })
-
-    socket.on('message', async (data:any, callback?:Function) => {
-
-        socket.to(room.getId()).emit('message', data)
-    })
-
-    socket.on('disconnect', async () => {
-
-        socket.to(room.getId()).emit('peerRemoved', {
-            peer: peer.dumps()
+            if ('audio' in data) {
+                let muting = data.muting
+    
+                for (let track of outgoingStream.getAudioTracks()) {
+                    track.mute(muting)
+                }
+            }
+        })
+    
+        socket.on('leave', async (data:any, callback?:Function) => {
+    
+            socket.disconnect(true)
+    
+            peer.close()
         })
 
-        socket.leaveAll()
-        
-        peer.close()
+        socket.on('message', async (data:any, callback?:Function) => {
+            socket.to(room.getId()).emit('message', data)
+        })
 
+        socket.on('disconnect', async () => {
+            socket.to(room.getId()).emit('peerRemoved', {
+                peer: peer.dumps()
+            })
+            socket.leaveAll()
+            peer.close()
+        })
     })
-
 }
 
-export default socketHandle
+
+export default {
+    socketServer,
+    setupSocketServer
+}
