@@ -6,17 +6,17 @@ import config from './config'
 import Logger from './logger'
 
 const MediaServer = require('medooze-media-server')
-const SemanticSDP	= require('semantic-sdp')
+const SemanticSDP = require('semantic-sdp')
 
-const SDPInfo		= SemanticSDP.SDPInfo
-const MediaInfo		= SemanticSDP.MediaInfo
-const CandidateInfo	= SemanticSDP.CandidateInfo
-const DTLSInfo		= SemanticSDP.DTLSInfo
-const ICEInfo		= SemanticSDP.ICEInfo
-const StreamInfo	= SemanticSDP.StreamInfo
-const TrackInfo		= SemanticSDP.TrackInfo
-const Direction		= SemanticSDP.Direction
-const CodecInfo		= SemanticSDP.CodecInfo
+const SDPInfo = SemanticSDP.SDPInfo
+const MediaInfo = SemanticSDP.MediaInfo
+const CandidateInfo = SemanticSDP.CandidateInfo
+const DTLSInfo = SemanticSDP.DTLSInfo
+const ICEInfo = SemanticSDP.ICEInfo
+const StreamInfo = SemanticSDP.StreamInfo
+const TrackInfo = SemanticSDP.TrackInfo
+const Direction = SemanticSDP.Direction
+const CodecInfo = SemanticSDP.CodecInfo
 
 
 const log = new Logger('peer')
@@ -41,8 +41,8 @@ class Peer extends EventEmitter {
     private server: Server
     private transport: any
 
-    
-    constructor(peerId:string, server: Server) {
+
+    constructor(peerId: string, server: Server) {
         super()
 
         this.server = server
@@ -62,15 +62,15 @@ class Peer extends EventEmitter {
         return this.remoteSdp
     }
 
-    public getIncomingStreams(): Map<string,any> {
+    public getIncomingStreams(): Map<string, any> {
         return this.incomingStreams
     }
 
-    public getOutgoingStreams(): Map<string,any> {
+    public getOutgoingStreams(): Map<string, any> {
         return this.outgoingStreams
     }
 
-    public init(data:any, room:Room) {
+    public init(data: any, room: Room) {
 
 
         this.room = room
@@ -80,7 +80,7 @@ class Peer extends EventEmitter {
         if ('planb' in data) {
             this.usePlanB = !!<boolean>data.planb
         }
-        
+
         const endpoint = room.getEndpoint()
 
         this.transport = endpoint.createTransport(offer)
@@ -96,8 +96,8 @@ class Peer extends EventEmitter {
         }
 
         const answer = offer.answer({
-            dtls    : this.transport.getLocalDTLSInfo(),
-            ice     : this.transport.getLocalICEInfo(),
+            dtls: this.transport.getLocalDTLSInfo(),
+            ice: this.transport.getLocalICEInfo(),
             candidates: endpoint.getLocalCandidates(),
             capabilities: config.media.capabilities
         })
@@ -154,15 +154,15 @@ class Peer extends EventEmitter {
         outgoingStream.stop()
     }
 
-    public subIncomingStream(incomingStream: any,) {
-        
+    public subIncomingStream(incomingStream: any, ) {
+
         if (this.outgoingStreams.get(incomingStream.getId())) {
             log.error("subIncomingStream: outstream already exist", incomingStream.getId())
             return
         }
 
         const outgoingStream = this.transport.createOutgoingStream(incomingStream.getStreamInfo())
-        
+
         this.localSdp.addStream(outgoingStream.getStreamInfo())
 
         this.outgoingStreams.set(outgoingStream.getId(), outgoingStream)
@@ -179,13 +179,13 @@ class Peer extends EventEmitter {
 
             let exist = this.outgoingStreams.delete(outgoingStream.getId())
 
-            if(exist) {
+            if (exist) {
                 this.emit('renegotiationneeded', outgoingStream)
             }
-           
+
         })
 
-    } 
+    }
 
     public addOutgoingStream(stream: any, emit = true) {
 
@@ -197,27 +197,27 @@ class Peer extends EventEmitter {
         const outgoingStream = this.transport.createOutgoingStream(stream.getStreamInfo())
 
         const info = outgoingStream.getStreamInfo()
-        
+
         this.localSdp.addStream(info)
 
         this.outgoingStreams.set(outgoingStream.getId(), outgoingStream)
 
         outgoingStream.attachTo(stream)
-        
+
         stream.on('stopped', () => {
 
             if (this.localSdp) {
                 this.localSdp.removeStream(info)
             }
-            
+
             outgoingStream.stop()
 
             let exist = this.outgoingStreams.delete(outgoingStream.getId())
 
-            if(exist) {
+            if (exist) {
                 this.emit('renegotiationneeded', outgoingStream)
             }
-           
+
         })
 
         if (emit) {
@@ -254,8 +254,8 @@ class Peer extends EventEmitter {
         const filename = 'recordings/' + incomingStream.id + '-' + Date.now() + '.mp4'
 
         const recorder = MediaServer.createRecorder(filename, {
-            refresh:  config.recorder.refreshPeriod || 10000,
-            waitForIntra: !!config.recorder.waitForIntra 
+            refresh: config.recorder.refreshPeriod || 10000,
+            waitForIntra: !!config.recorder.waitForIntra
         })
 
         recorder.record(incomingStream)
@@ -285,7 +285,7 @@ class Peer extends EventEmitter {
     }
 
 
-    public dumps():any {
+    public dumps(): any {
 
         const incomingStreams = Array.from(this.incomingStreams.values())
         const streams = incomingStreams.map((stream) => {

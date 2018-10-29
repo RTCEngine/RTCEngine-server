@@ -4,14 +4,13 @@
 const randomstring = require('randomstring')
 
 class Message {
-    id:string
-    peer:string
-    room:string
-    type:string
-    data:any
+    id: string
+    peer: string
+    room: string
+    type: string
+    data: any
 
-    toJSON():any
-    {
+    toJSON(): any {
         return {
             id: this.id,
             peer: this.peer,
@@ -22,7 +21,7 @@ class Message {
     }
 
     static parse(raw: string): Message {
-        let message:Message = new Message()
+        let message: Message = new Message()
         let object = JSON.parse(raw)
         message.id = object.id
         message.peer = object.peer
@@ -32,8 +31,8 @@ class Message {
         return message
     }
 
-    static messageFactory(params:any): Message {
-            
+    static messageFactory(params: any): Message {
+
         let message = new Message()
         message.id = params.id ? params.id : randomstring.generate(10)
         message.peer = params.peer

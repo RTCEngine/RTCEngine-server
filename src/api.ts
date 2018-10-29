@@ -20,13 +20,13 @@ apiRouter.post('/api/generateToken', async (req: Request, res: Response) => {
     let appkey = req.body.appkey
     let room = req.body.room
     let user = req.body.user
-    
-    let secret = config.server.secret                
+
+    let secret = config.server.secret
 
     let iceServers = []
 
     for (let server of config.iceServers) {
-        let iceServer = turn.genRestTurn(server.host,server.port,server.transports,server.secret)
+        let iceServer = turn.genRestTurn(server.host, server.port, server.transports, server.secret)
         iceServers.push(iceServer)
     }
 

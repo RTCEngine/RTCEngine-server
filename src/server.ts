@@ -25,17 +25,17 @@ export default class Server extends EventEmitter {
 
     private app: express.Application
     private httpServer: http.Server
-   
+
     private rooms: Map<string, Room> = new Map()
     private peers: Set<Peer> = new Set()
-    
-    constructor(params:any) {
+
+    constructor(params: any) {
         //create expressjs application
         super()
 
         this.app = express()
-        
-       
+
+
         //configure application
         this.config()
 
@@ -43,8 +43,8 @@ export default class Server extends EventEmitter {
         this.routes()
     }
 
-    public start(port:number, hostname:string, callback?:Function) {
-        
+    public start(port: number, hostname: string, callback?: Function) {
+
         this.httpServer = this.app.listen(port, hostname, callback)
 
         this.startSocketServer()
@@ -88,7 +88,7 @@ export default class Server extends EventEmitter {
 
         socketHandle.setupSocketServer(this)
     }
-    
+
     public getRooms(): Room[] {
         return Array.from(this.rooms.values())
     }
@@ -97,9 +97,9 @@ export default class Server extends EventEmitter {
         return this.rooms.get(roomId)
     }
 
-    public Room(roomId:string) : Room {
+    public Room(roomId: string): Room {
         const room = new Room(roomId)
-        
+
         this.rooms.set(room.getId(), room)
 
         room.on('close', () => {
@@ -108,7 +108,7 @@ export default class Server extends EventEmitter {
 
         return room
     }
-    
+
     public dumps() {
         let info = []
         for (const room of this.rooms.values()) {

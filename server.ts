@@ -1,6 +1,6 @@
 import * as program from 'commander'
 import * as dotenv from 'dotenv'
-import ip  = require('ip')
+import ip = require('ip')
 
 const MediaServer = require('medooze-media-server')
 
@@ -16,7 +16,7 @@ import Server from './src/server'
 const server = new Server({})
 
 server.start(3888, '0.0.0.0', () => {
-    
+
     console.log('start =========================')
 })
 

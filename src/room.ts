@@ -13,9 +13,9 @@ export default class Room extends EventEmitter {
     private roomId: string
     private closed: boolean
     private peers: Map<string, Peer>
-    private attributes: Map<string,any>
-    private bitrates: Map<string,any>
-    private tracksMap: Map<string,string>
+    private attributes: Map<string, any>
+    private bitrates: Map<string, any>
+    private tracksMap: Map<string, string>
     private endpoint: any
     private activeSpeakerDetector: any
 
@@ -45,13 +45,13 @@ export default class Room extends EventEmitter {
                 this.emit('activespeakerchanged', peerId)
                 // just log for now 
                 log.debug('activespeakerchanged', peerId)
-            } 
-            
+            }
+
         })
 
     }
 
-    public getId():string {
+    public getId(): string {
         return this.roomId
     }
 
@@ -91,13 +91,13 @@ export default class Room extends EventEmitter {
             let audioTrack = stream.getAudioTracks()[0]
 
             if (audioTrack) {
-                
+
                 this.activeSpeakerDetector.addSpeaker(audioTrack)
 
                 audioTrack.on('stoped', () => {
                     this.activeSpeakerDetector.removeSpeaker(audioTrack)
                 })
-                
+
             }
 
         })
@@ -139,7 +139,7 @@ export default class Room extends EventEmitter {
         this.emit('close')
     }
 
-    public getIncomingStreams(): Map<string,any> {
+    public getIncomingStreams(): Map<string, any> {
         const streams = new Map()
         for (let peer of this.peers.values()) {
             for (let stream of peer.getIncomingStreams().values()) {
@@ -149,22 +149,22 @@ export default class Room extends EventEmitter {
         return streams
     }
 
-    public getAttribute(stream:string): any {
+    public getAttribute(stream: string): any {
         return this.attributes.get(stream)
     }
 
-    public setAttribute(stream:string, attibute:any) {
+    public setAttribute(stream: string, attibute: any) {
         this.attributes.set(stream, attibute)
     }
 
-    public getBitrate(stream:string): any {
+    public getBitrate(stream: string): any {
         return this.bitrates.get(stream)
     }
 
-    public setBitrate(stream:string, bitrate: any) {
+    public setBitrate(stream: string, bitrate: any) {
         return this.bitrates.set(stream, bitrate)
     }
-    
+
     public dumps(): any {
         let info = {
             id: this.roomId,

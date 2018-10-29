@@ -1,22 +1,22 @@
 export default {
-   
+
     server: {
         secret: 'test_secret',
         externalUrl: 'http://192.168.200.15:3888/'
     },
     iceServer: {
-        urls: ['101.201.141.179:3478','101.201.141.179:3478'],
+        urls: ['101.201.141.179:3478', '101.201.141.179:3478'],
         secret: 'dotEngine_turn001',
-        transports: ['udp','tcp']
+        transports: ['udp', 'tcp']
 
     },
 
-    iceServers : [
+    iceServers: [
         {
-            host:  '101.201.141.179',
-            port:  3478,
+            host: '101.201.141.179',
+            port: 3478,
             secret: 'dotEngine_turn001',
-            transports: ['udp','tcp']
+            transports: ['udp', 'tcp']
         }
     ],
     // to disable recorder  comment this
@@ -43,12 +43,12 @@ export default {
             video: {
                 codecs: ['vp8'],
                 //codecs: ['h264;packetization-mode=1;profile-level-id=42e01f'],
-                rtx:    true,
-                rtcpfbs:    [
-                    { 'id': 'transport-cc'},
-                    { "id": "ccm", "params": ["fir"]},
-                    { "id": "nack"},
-                    { "id": "nack", "params": ["pli"]}
+                rtx: true,
+                rtcpfbs: [
+                    { 'id': 'transport-cc' },
+                    { "id": "ccm", "params": ["fir"] },
+                    { "id": "nack" },
+                    { "id": "nack", "params": ["pli"] }
                 ],
                 extensions: [
                     'http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time',
