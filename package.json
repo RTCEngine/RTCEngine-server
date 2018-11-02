@@ -48,7 +48,7 @@
     "method-override": "^3.0.0",
     "nodemon": "^1.18.4",
     "randomstring": "^1.1.5",
-    "semantic-sdp": "github:notedit/semantic-sdp-js",
+    "semantic-sdp": "^3.11.0",
     "socket.io": "^2.1.1",
     "ts-node": "^7.0.1",
     "typescript": "^3.1.1",
