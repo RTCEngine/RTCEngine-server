@@ -1,5 +1,4 @@
 export default {
-
     server: {
         secret: 'test_secret',
         externalUrl: 'http://192.168.200.15:3888/'
@@ -8,9 +7,10 @@ export default {
         urls: ['101.201.141.179:3478', '101.201.141.179:3478'],
         secret: 'dotEngine_turn001',
         transports: ['udp', 'tcp']
-
     },
-
+    etcd: {
+        hosts:'127.0.0.1:2379'
+    },
     iceServers: [
         {
             host: '101.201.141.179',

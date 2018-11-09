@@ -12,12 +12,10 @@ import Server from './src/server'
 // MediaServer.enableUltraDebug(true);
 
 
-
 const server = new Server({})
 
-server.start(3888, '0.0.0.0', () => {
-
-    console.log('start =========================')
+server.start(3888, '127.0.0.1', () => {
+    console.log('start')
 })
 
 

@@ -8,8 +8,6 @@ import * as cors from 'cors'
 import errorHandler = require('errorhandler')
 import methodOverride = require('method-override')
 
-import * as socketio from 'socket.io'
-
 const MediaServer = require('medooze-media-server')
 
 import Room from './room'
@@ -20,6 +18,7 @@ import apiRouter from './api'
 import socketHandle from './signalling'
 import { EventEmitter } from 'events'
 
+import etc from './etcd'
 
 export default class Server extends EventEmitter {
 
@@ -48,6 +47,8 @@ export default class Server extends EventEmitter {
         this.httpServer = this.app.listen(port, hostname, callback)
 
         this.startSocketServer()
+        
+        etc.registerService()
 
     }
 
