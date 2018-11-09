@@ -18,8 +18,6 @@ import apiRouter from './api'
 import socketHandle from './signalling'
 import { EventEmitter } from 'events'
 
-import etc from './etcd'
-
 export default class Server extends EventEmitter {
 
     private app: express.Application
@@ -47,8 +45,6 @@ export default class Server extends EventEmitter {
         this.httpServer = this.app.listen(port, hostname, callback)
 
         this.startSocketServer()
-        
-        etc.registerService()
 
     }
 
