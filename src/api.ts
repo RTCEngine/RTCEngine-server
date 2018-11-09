@@ -50,4 +50,12 @@ apiRouter.post('/api/generateToken', async (req: Request, res: Response) => {
     })
 })
 
+
+apiRouter.options('/api/config', cors())
+apiRouter.post('/api/config', async (req: Request, res:Response) => {
+
+    
+})
+
+
 export default apiRouter
