@@ -3,11 +3,6 @@ export default {
         secret: 'test_secret',
         externalUrl: 'http://192.168.200.15:3888/'
     },
-    iceServer: {
-        urls: ['101.201.141.179:3478', '101.201.141.179:3478'],
-        secret: 'dotEngine_turn001',
-        transports: ['udp', 'tcp']
-    },
     etcd: {
         hosts:'127.0.0.1:2379'
     },
@@ -45,6 +40,7 @@ export default {
                 //codecs: ['h264;packetization-mode=1;profile-level-id=42e01f'],
                 rtx: true,
                 rtcpfbs: [
+                    { 'id': 'goog-remb' },
                     { 'id': 'transport-cc' },
                     { "id": "ccm", "params": ["fir"] },
                     { "id": "nack" },
