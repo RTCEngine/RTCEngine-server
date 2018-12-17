@@ -25,90 +25,128 @@ const log = new Logger('peer')
 class Peer extends EventEmitter {
 
     private usePlanB: boolean = true
-    private userId: string
+    private peerId: string
     private roomId: string
     private closed: boolean = false
     // after Unified Plan is supported, we should set bitrate for every mediasource
     private bitrate: number = 0
     private room: Room
 
-    private incomingStreams: Map<string, any> = new Map()
-    private outgoingStreams: Map<string, any> = new Map()
-
-    private localSdp: any
-    private remoteSdp: any
+    private incomingTracks: Map<string,any> = new Map()
+    private outgoingTracks: Map<string,any> = new Map()
 
     private server: Server
     private transport: any
+    private sdpManager: any
 
 
     constructor(peerId: string, server: Server) {
         super()
 
         this.server = server
-        this.userId = peerId
-
+        this.peerId = peerId
     }
 
     public getId() {
-        return this.userId
+        return this.peerId
     }
 
-    public getLocalSDP() {
-        return this.localSdp
+    public getLocalDescription() {
+        return  this.sdpManager.createLocalDescription()
     }
 
-    public getRemoteSDP() {
-        return this.remoteSdp
+    public getIncomingTracks(): Map<string,any> {
+        return this.incomingTracks
     }
 
-    public getIncomingStreams(): Map<string, any> {
-        return this.incomingStreams
-    }
-
-    public getOutgoingStreams(): Map<string, any> {
-        return this.outgoingStreams
+    public getOutgoingTracks(): Map<string,any> {
+        return this.outgoingTracks
     }
 
     public init(data: any, room: Room) {
-
 
         this.room = room
 
         const offer = SDPInfo.process(data.sdp)
 
-        if ('planb' in data) {
-            this.usePlanB = !!<boolean>data.planb
-        }
+        // if (offer.getMedia('audio')) {
+        //     offer.getMedia('audio').setDirection(Direction.SENDRECV)
+        // }
+
+        // if (offer.getMedia('video')) {
+        //     offer.getMedia('video').setDirection(Direction.SENDRECV)
+        // }
 
         const endpoint = room.getEndpoint()
 
-        this.transport = endpoint.createTransport(offer)
+        this.sdpManager = endpoint.createSDPManager('unified-plan', config.media.capabilities)
 
-        this.transport.setRemoteProperties(offer)
+        this.sdpManager.processRemoteDescription(offer.toString())
 
-        if (offer.getMedia('audio')) {
-            offer.getMedia('audio').setDirection(Direction.SENDRECV)
-        }
+        this.sdpManager.createLocalDescription()
 
-        if (offer.getMedia('video')) {
-            offer.getMedia('video').setDirection(Direction.SENDRECV)
-        }
+        this.transport = this.sdpManager.getTransport()
 
-        const answer = offer.answer({
-            dtls: this.transport.getLocalDTLSInfo(),
-            ice: this.transport.getLocalICEInfo(),
-            candidates: endpoint.getLocalCandidates(),
-            capabilities: config.media.capabilities
+        this.transport.on('incomingtrack', (track, stream) => {
+
+            log.debug('newtrack ==== ', track.getId())
+
+            if (!this.incomingTracks.get(track.getId())) {
+                this.incomingTracks.set(track.getId(), track)
+            }
+
+            track.stream = stream
+
+            track.once('stopped', () => {
+                this.incomingTracks.delete(track.getId())
+            })
+
+            this.emit('incomingtrack', track)
         })
 
-        this.transport.setLocalProperties({
-            audio: answer.getMedia('audio'),
-            video: answer.getMedia('video')
+        this.transport.on('outgoingtrack', (track, stream) => {
+
+            log.debug('outgoingtrack =========', track.getId())
+
+            if (!this.outgoingTracks.get(track.getId())) {
+                this.outgoingTracks.set(track.getId(), track)
+            }
+
+            track.stream = stream
+
+            track.once('stopped', () => {
+                this.outgoingTracks.delete(track.getId())
+            })
+
+            this.emit('outgoingtrack', track)
+
         })
 
-        this.localSdp = answer
-        this.remoteSdp = offer
+        this.sdpManager.on('renegotiationneeded', () => {
+
+            log.debug('renegotiationneeded =============')
+            this.emit('renegotiationneeded')
+        })
+    }
+
+    public addOutgoingTrack(track, stream) {
+        
+        const outgoingStreamId = 'remote-' + stream.getId()
+
+        let outgoingStream = this.transport.getOutgoingStream(outgoingStreamId)
+
+        if (!outgoingStream) {
+            outgoingStream = this.transport.createOutgoingStream(outgoingStreamId)
+        }
+
+        const outgoing = outgoingStream.createTrack(track.getMedia())
+
+        outgoing.attachTo(track)
+
+        track.once('stopped', () => {
+            outgoing.stop()
+        })
+
     }
 
     public close() {
@@ -121,184 +159,52 @@ class Peer extends EventEmitter {
 
         this.closed = true
 
-
-        for (let stream of this.incomingStreams.values()) {
-            stream.stop()
+        for (let track of this.incomingTracks.values()) {
+            track.stop()
         }
 
-        for (let stream of this.outgoingStreams.values()) {
-            stream.stop()
+        for (let track of this.outgoingTracks.values()) {
+            track.stop()
         }
 
         if (this.transport) {
             this.transport.stop()
         }
 
-        this.incomingStreams.clear()
-        this.outgoingStreams.clear()
+        this.incomingTracks.clear()
+        this.outgoingTracks.clear()
 
         this.emit('close')
     }
 
-    public unsubIncomingStream(incomingStream: any) {
+    public processRemoteDescription(sdp:string) {
 
-        if (!this.outgoingStreams.get(incomingStream.getId())) {
-            log.error("removeOutgoingStream: outstream does not exist", incomingStream.getId())
-            return
-        }
-
-        const outgoingStream = this.outgoingStreams.get(incomingStream.getId())
-
-        this.localSdp.removeStream(incomingStream.getStreamInfo())
-
-        outgoingStream.stop()
-    }
-
-    public subIncomingStream(incomingStream: any, ) {
-
-        if (this.outgoingStreams.get(incomingStream.getId())) {
-            log.error("subIncomingStream: outstream already exist", incomingStream.getId())
-            return
-        }
-
-        const outgoingStream = this.transport.createOutgoingStream(incomingStream.getStreamInfo())
-
-        this.localSdp.addStream(outgoingStream.getStreamInfo())
-
-        this.outgoingStreams.set(outgoingStream.getId(), outgoingStream)
-
-        outgoingStream.attachTo(incomingStream)
-
-        incomingStream.on('stopped', () => {
-
-            if (this.localSdp) {
-                this.localSdp.removeStream(outgoingStream.getStreamInfo())
-            }
-
-            outgoingStream.stop()
-
-            let exist = this.outgoingStreams.delete(outgoingStream.getId())
-
-            if (exist) {
-                this.emit('renegotiationneeded', outgoingStream)
-            }
-
-        })
-
-    }
-
-    public addOutgoingStream(stream: any, emit = true) {
-
-        if (this.outgoingStreams.get(stream.getId())) {
-            log.error("addOutgoingStream: outstream already exist", stream.getId())
-            return
-        }
-
-        const outgoingStream = this.transport.createOutgoingStream(stream.getStreamInfo())
-
-        const info = outgoingStream.getStreamInfo()
-
-        this.localSdp.addStream(info)
-
-        this.outgoingStreams.set(outgoingStream.getId(), outgoingStream)
-
-        outgoingStream.attachTo(stream)
-
-        stream.on('stopped', () => {
-
-            if (this.localSdp) {
-                this.localSdp.removeStream(info)
-            }
-
-            outgoingStream.stop()
-
-            let exist = this.outgoingStreams.delete(outgoingStream.getId())
-
-            if (exist) {
-                this.emit('renegotiationneeded', outgoingStream)
-            }
-
-        })
-
-        if (emit) {
-
-            this.emit('renegotiationneeded', outgoingStream)
+        try {
+            this.sdpManager.processRemoteDescription(sdp)
+            // do we need send this back 
+            this.sdpManager.createLocalDescription()
+        } catch (error) {
+            log.error(error)
         }
     }
-
-
-    public addStream(streamInfo: any) {
-
-        if (!this.transport) {
-            log.error('do not have transport')
-            return
-        }
-
-        const incomingStream = this.transport.createIncomingStream(streamInfo)
-
-        this.incomingStreams.set(incomingStream.id, incomingStream)
-
-
-        process.nextTick(() => {
-
-            this.emit('stream', incomingStream)
-        })
-
-        this.remoteSdp.addStream(streamInfo)
-
-        // now start to record 
-        if (!(config.recorder && config.recorder.enable)) {
-            return
-        }
-
-        const filename = 'recordings/' + incomingStream.id + '-' + Date.now() + '.mp4'
-
-        const recorder = MediaServer.createRecorder(filename, {
-            refresh: config.recorder.refreshPeriod || 10000,
-            waitForIntra: !!config.recorder.waitForIntra
-        })
-
-        recorder.record(incomingStream)
-
-        incomingStream.on('stopped', () => {
-            recorder.stop()
-        })
-    }
-
-
-    public removeStream(streamInfo: any) {
-
-        if (!this.transport) {
-            log.error('do not have transport')
-            return
-        }
-
-        let incomingStream = this.incomingStreams.get(streamInfo.getId())
-
-        if (incomingStream) {
-            incomingStream.stop()
-        }
-
-        this.incomingStreams.delete(streamInfo.getId())
-
-        this.remoteSdp.removeStream(streamInfo)
-    }
-
 
     public dumps(): any {
 
-        const incomingStreams = Array.from(this.incomingStreams.values())
-        const streams = incomingStreams.map((stream) => {
+        const incomingTracks = Array.from(this.incomingTracks.values())
+
+        const tracks = incomingTracks.map((track) => {
             return {
-                id: stream.getId(),
-                bitrate: this.room.getBitrate(stream.getId()),
-                attributes: this.room.getAttribute(stream.getId())
+                trackId: track.getId(),
+                bitrate: this.room.getBitrate(track.getId()),
+                attributes: this.room.getAttribute(track.getId())
             }
         })
+
         const info = {
-            id: this.userId,
-            streams: streams
+            peerId: this.peerId,
+            tracks: tracks
         }
+
         return info
     }
 

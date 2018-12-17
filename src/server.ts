@@ -95,11 +95,11 @@ export default class Server extends EventEmitter {
     }
 
     public Room(roomId: string): Room {
+
         const room = new Room(roomId)
-
         this.rooms.set(room.getId(), room)
-
-        room.on('close', () => {
+        
+        room.once('close', () => {
             this.rooms.delete(room.getId())
         })
 

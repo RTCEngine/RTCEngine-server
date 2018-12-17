@@ -19,7 +19,7 @@ export default class Room extends EventEmitter {
     private endpoint: any
     private activeSpeakerDetector: any
 
-    constructor(room: string) {
+    constructor(room: string, endpoint?:any) {
 
         super()
         this.setMaxListeners(Infinity)
@@ -80,29 +80,26 @@ export default class Room extends EventEmitter {
 
         this.peers.set(peer.getId(), peer)
 
-        peer.on('stream', (stream) => {
 
+        peer.on('incomingtrack', (track,stream) => {
+            
             for (let other of this.peers.values()) {
-                if (peer.getId() !== other.getId()) {
-                    other.addOutgoingStream(stream)
+                if(peer.getId() !== other.getId()) {
+                    other.addOutgoingTrack(track, stream)
                 }
             }
 
-            let audioTrack = stream.getAudioTracks()[0]
+            if (track.getMedia() === 'audio') {
 
-            if (audioTrack) {
-
-                this.activeSpeakerDetector.addSpeaker(audioTrack)
-
-                audioTrack.on('stoped', () => {
-                    this.activeSpeakerDetector.removeSpeaker(audioTrack)
-                })
-
+                this.activeSpeakerDetector.addSpeaker(track)
+                track.once('stoped', () => {
+                    this.activeSpeakerDetector.removeSpeaker(track)
+                })   
             }
-
+            
         })
 
-        peer.on('close', () => {
+        peer.once('close', () => {
 
             this.peers.delete(peer.getId())
 
@@ -139,35 +136,35 @@ export default class Room extends EventEmitter {
         this.emit('close')
     }
 
-    public getIncomingStreams(): Map<string, any> {
-        const streams = new Map()
+    public getIncomingTracks(): Map<string, any> {
+        const tracks = new Map()
         for (let peer of this.peers.values()) {
-            for (let stream of peer.getIncomingStreams().values()) {
-                streams.set(stream.getId(), stream)
+            for (let track of peer.getIncomingTracks().values()) {
+                tracks.set(track.getId(), track)
             }
         }
-        return streams
+        return tracks
     }
 
-    public getAttribute(stream: string): any {
-        return this.attributes.get(stream)
+    public getAttribute(trackId: string): any {
+        return this.attributes.get(trackId)
     }
 
-    public setAttribute(stream: string, attibute: any) {
-        this.attributes.set(stream, attibute)
+    public setAttribute(trackId: string, attibute: any) {
+        this.attributes.set(trackId, attibute)
     }
 
-    public getBitrate(stream: string): any {
-        return this.bitrates.get(stream)
+    public getBitrate(trackId: string): any {
+        return this.bitrates.get(trackId) || 0
     }
 
-    public setBitrate(stream: string, bitrate: any) {
-        return this.bitrates.set(stream, bitrate)
+    public setBitrate(trackId: string, bitrate: any) {
+        return this.bitrates.set(trackId, bitrate)
     }
 
     public dumps(): any {
         let info = {
-            id: this.roomId,
+            roomId: this.roomId,
             peers: []
         }
         for (let peer of this.peers.values()) {

@@ -53,14 +53,14 @@ const setupSocketServer = async (server: Server) => {
 
             peer.init(data, room)
 
-            const streams = room.getIncomingStreams()
+            const tracks = room.getIncomingTracks()
 
-            for (let stream of streams.values()) {
-                peer.subIncomingStream(stream)
+            for (let track of tracks.values()) {
+                peer.addOutgoingTrack(track, track.stream)
             }
 
             socket.emit('joined', {
-                sdp: peer.getLocalSDP().toString(),
+                sdp: peer.getLocalDescription(),
                 room: room.dumps()
             })
 
@@ -68,54 +68,53 @@ const setupSocketServer = async (server: Server) => {
                 peer: peer.dumps()
             })
 
-            peer.on('renegotiationneeded', (outgoingStream) => {
+            peer.on('renegotiationneeded', () => {
 
                 socket.emit('offer', {
-                    sdp: peer.getLocalSDP().toString(),
+                    sdp: peer.getLocalDescription(),
                     room: room.dumps()
+                }, (data) => {
+                    peer.processRemoteDescription(data)
                 })
-
             })
+
+            peer.on('incomingtrack', (track) => {
+
+                socket.emit('trackadded', {
+                    trackId: track.getId()
+                })
+            })
+        })
+
+        socket.on('addtrack', async (data:any, callback?: Function) => {
+
+            const sdp = data.sdp
+            const streamId = data.track.streamId
+            const trackId = data.track.trackId
+            const bitrate = data.track.bitrate
+            const attributes = data.track.attributes
+
+            room.setBitrate(trackId, bitrate)
+            room.setAttribute(trackId, attributes)
+
+            peer.processRemoteDescription(sdp)
+
+            // do nothing
+            peer.getLocalDescription()
+            // find a way to limit bandwidth
 
         })
 
-        socket.on('addStream', async (data: any, callback?: Function) => {
+        socket.on('removetrack', async (data: any, callback?: Function) => {
 
-            const sdp = SDPInfo.process(data.sdp)
-            const streamId = data.stream.msid
-            const bitrate = data.stream.bitrate
-            const attributes = data.stream.attributes
+            const sdp = data.sdp
+            const streamId = data.track.streamId
+            const trackId = data.track.trackId
 
-            room.setBitrate(streamId, bitrate)
-            room.setAttribute(streamId, attributes)
+            peer.processRemoteDescription(sdp)
 
-            const streamInfo = sdp.getStream(streamId)
-
-            if (!streamInfo) {
-                // this should not happen
-                return
-            }
-
-            peer.addStream(streamInfo)
-
-            // we set bitrate, need find a better way to do this
-            for (let media of peer.getLocalSDP().getMediasByType('video')) {
-                media.setBitrate(bitrate)
-            }
-
-            socket.emit('streamAdded', {
-                msid: streamInfo.getId()
-            })
-
-        })
-
-        socket.on('removeStream', async (data: any, callback?: Function) => {
-
-            const streamId = data.stream.msid
-
-            const stream = peer.getIncomingStreams().get(streamId)
-
-            peer.removeStream(stream.getStreamInfo())
+            // do nothing
+            peer.getLocalDescription()
 
         })
 
@@ -124,32 +123,32 @@ const setupSocketServer = async (server: Server) => {
             const streamId = data.msid
 
             // localstream 
-            if (peer.getIncomingStreams().get(streamId)) {
-                socket.to(room.getId()).emit('configure', data)
-                return
-            }
+            // if (peer.getIncomingStreams().get(streamId)) {
+            //     socket.to(room.getId()).emit('configure', data)
+            //     return
+            // }
 
-            const outgoingStream = peer.getOutgoingStreams().get(streamId)
+            // const outgoingStream = peer.getOutgoingStreams().get(streamId)
 
-            if (!outgoingStream) {
-                return
-            }
+            // if (!outgoingStream) {
+            //     return
+            // }
 
-            if ('video' in data) {
-                let muting = data.muting
+            // if ('video' in data) {
+            //     let muting = data.muting
 
-                for (let track of outgoingStream.getVideoTracks()) {
-                    track.mute(muting)
-                }
-            }
+            //     for (let track of outgoingStream.getVideoTracks()) {
+            //         track.mute(muting)
+            //     }
+            // }
 
-            if ('audio' in data) {
-                let muting = data.muting
+            // if ('audio' in data) {
+            //     let muting = data.muting
 
-                for (let track of outgoingStream.getAudioTracks()) {
-                    track.mute(muting)
-                }
-            }
+            //     for (let track of outgoingStream.getAudioTracks()) {
+            //         track.mute(muting)
+            //     }
+            // }
         })
 
         socket.on('leave', async (data: any, callback?: Function) => {
