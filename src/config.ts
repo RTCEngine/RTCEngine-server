@@ -1,28 +1,19 @@
 export default {
     server: {
         secret: 'test_secret',
-        externalUrl: 'http://192.168.200.15:3888/'
-    },
-    etcd: {
-        hosts:'127.0.0.1:2379'
+        externalUrl: 'http://127.0.0.1:3888/'
     },
     iceServers: [
-        {
-            host: '101.201.141.179',
-            port: 3478,
-            secret: 'dotEngine_turn001',
-            transports: ['udp', 'tcp']
-        }
     ],
     // to disable recorder  comment this
     recorder: {
-        enable: true,
+        enable: false,
         refreshPeriod: 10000,  // ten seconds
         waitForIntra: false
     },
     media: {
         debug: true,
-        endpoint: '192.168.200.15',
+        endpoint: '127.0.0.1',
         ultraDebug: true,
         rtcMinPort: 10000,
         rtcMaxPort: 10002,

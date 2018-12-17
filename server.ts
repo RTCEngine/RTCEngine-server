@@ -8,13 +8,13 @@ dotenv.config()
 
 import Server from './src/server'
 
-// MediaServer.enableDebug(true);
-// MediaServer.enableUltraDebug(true);
+MediaServer.enableDebug(true);
+MediaServer.enableUltraDebug(true);
 
 
 const server = new Server({})
 
-server.start(3888, '127.0.0.1', () => {
+server.start(3888, '0.0.0.0', () => {
     console.log('start')
 })
 
