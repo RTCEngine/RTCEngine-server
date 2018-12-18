@@ -112,7 +112,7 @@ class Peer extends EventEmitter {
 
         this.sdpManager.on('renegotiationneeded', () => {
 
-            log.debug('renegotiationneeded =============')
+            console.error('renegotiationneeded =============')
             this.emit('renegotiationneeded')
         })
     }

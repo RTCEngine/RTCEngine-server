@@ -53,11 +53,12 @@ const setupSocketServer = async (server: Server) => {
 
             peer.init(data, room)
 
-            const tracks = room.getIncomingTracks()
+            // const tracks = room.getIncomingTracks()
 
-            for (let track of tracks.values()) {
-                peer.addOutgoingTrack(track, track.stream)
-            }
+            // for (let track of tracks.values()) {
+            //     console.error('addout going track', track.getId())
+            //     peer.addOutgoingTrack(track, track.stream)
+            // }
 
             if (callback) {
                 callback({
@@ -66,16 +67,41 @@ const setupSocketServer = async (server: Server) => {
                 })
             }
 
-            // socket.emit('joined', {
-            //     sdp: peer.getLocalDescription(),
-            //     room: room.dumps()
-            // })
-
             socket.to(roomId).emit('peerConnected', {
                 peer: peer.dumps()
             })
 
+
+
             peer.on('renegotiationneeded', () => {
+
+                console.error('renegotiationneeded')
+
+                // socket.emit('offer', {
+                //     sdp: peer.getLocalDescription(),
+                //     room: room.dumps()
+                // }, (data) => {
+                //     peer.processRemoteDescription(data)
+                // })
+
+            })
+
+            //peer.emit('renegotiationneeded')
+
+            peer.on('incomingtrack', (track) => {
+                socket.emit('trackadded', {
+                    trackId: track.getId()
+                })
+            })
+
+
+            setTimeout(() => {
+                
+                const tracks = room.getIncomingTracks()
+                for (let track of tracks.values()) {
+                    console.error('addout going track', track.getId())
+                    peer.addOutgoingTrack(track, track.stream)
+                }
 
                 socket.emit('offer', {
                     sdp: peer.getLocalDescription(),
@@ -83,14 +109,27 @@ const setupSocketServer = async (server: Server) => {
                 }, (data) => {
                     peer.processRemoteDescription(data)
                 })
-            })
+                
 
-            peer.on('incomingtrack', (track) => {
+            }, 5000);
 
-                socket.emit('trackadded', {
-                    trackId: track.getId()
-                })
-            })
+        })
+
+        socket.on('test', async (data:any, callback?:Function) => {
+    
+            const tracks = room.getIncomingTracks()
+
+            for (let track of tracks.values()) {
+                console.error('addout going track', track.getId())
+                peer.addOutgoingTrack(track, track.stream)
+            }
+
+            const sdp = data.sdp
+            peer.processRemoteDescription(sdp)
+            const answer = peer.getLocalDescription()
+
+            callback(answer)
+            
         })
 
         socket.on('addtrack', async (data:any, callback?: Function) => {
