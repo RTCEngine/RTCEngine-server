@@ -67,23 +67,11 @@ class Peer extends EventEmitter {
 
         this.room = room
 
-        const offer = SDPInfo.process(data.sdp)
-
-        // if (offer.getMedia('audio')) {
-        //     offer.getMedia('audio').setDirection(Direction.SENDRECV)
-        // }
-
-        // if (offer.getMedia('video')) {
-        //     offer.getMedia('video').setDirection(Direction.SENDRECV)
-        // }
-
         const endpoint = room.getEndpoint()
 
         this.sdpManager = endpoint.createSDPManager('unified-plan', config.media.capabilities)
 
-        this.sdpManager.processRemoteDescription(offer.toString())
-
-        this.sdpManager.createLocalDescription()
+        this.sdpManager.processRemoteDescription(data.sdp)
 
         this.transport = this.sdpManager.getTransport()
 
@@ -182,7 +170,6 @@ class Peer extends EventEmitter {
         try {
             this.sdpManager.processRemoteDescription(sdp)
             // do we need send this back 
-            this.sdpManager.createLocalDescription()
         } catch (error) {
             log.error(error)
         }
@@ -194,12 +181,13 @@ class Peer extends EventEmitter {
 
         const tracks = incomingTracks.map((track) => {
             return {
+                streamId: track.stream.id,
                 trackId: track.getId(),
                 bitrate: this.room.getBitrate(track.getId()),
                 attributes: this.room.getAttribute(track.getId())
             }
         })
-
+        
         const info = {
             peerId: this.peerId,
             tracks: tracks

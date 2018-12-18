@@ -59,10 +59,17 @@ const setupSocketServer = async (server: Server) => {
                 peer.addOutgoingTrack(track, track.stream)
             }
 
-            socket.emit('joined', {
-                sdp: peer.getLocalDescription(),
-                room: room.dumps()
-            })
+            if (callback) {
+                callback({
+                    sdp: peer.getLocalDescription(),
+                    room: room.dumps()
+                })
+            }
+
+            // socket.emit('joined', {
+            //     sdp: peer.getLocalDescription(),
+            //     room: room.dumps()
+            // })
 
             socket.to(roomId).emit('peerConnected', {
                 peer: peer.dumps()
@@ -100,7 +107,9 @@ const setupSocketServer = async (server: Server) => {
             peer.processRemoteDescription(sdp)
 
             // do nothing
-            peer.getLocalDescription()
+            const answer = peer.getLocalDescription()
+
+            callback(answer)
             // find a way to limit bandwidth
 
         })
