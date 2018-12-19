@@ -178,11 +178,12 @@ class Peer extends EventEmitter {
     public dumps(): any {
 
         const incomingTracks = Array.from(this.incomingTracks.values())
-
+        
         const tracks = incomingTracks.map((track) => {
             return {
                 streamId: track.stream.id,
                 trackId: track.getId(),
+                media: track.getMedia(),
                 bitrate: this.room.getBitrate(track.getId()),
                 attributes: this.room.getAttribute(track.getId())
             }

@@ -50,6 +50,7 @@
     "randomstring": "^1.1.5",
     "semantic-sdp": "^3.16.0",
     "socket.io": "^2.2.0",
+    "socketio-transaction": "^1.0.1",
     "ts-node": "^7.0.1",
     "typescript": "^3.2.2",
     "uuid": "^3.2.1"

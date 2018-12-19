@@ -1,6 +1,7 @@
 import * as socketio from 'socket.io'
 import * as jwt from 'jwt-simple'
 
+const TransactionManager = require('socketio-transaction')
 const SemanticSDP = require('semantic-sdp')
 
 const SDPInfo = SemanticSDP.SDPInfo
@@ -17,6 +18,7 @@ import Server from './server'
 import Room from './room'
 import Peer from './peer'
 import config from './config'
+
 
 
 const socketServer = socketio({
@@ -45,7 +47,7 @@ const setupSocketServer = async (server: Server) => {
 
         const peer = new Peer(userId, server)
 
-        socket.on('join', async (data: any, callback?: Function) => {
+        socket.on('join', async (data: any, ack?: Function) => {
 
             room.addPeer(peer)
 
@@ -53,24 +55,14 @@ const setupSocketServer = async (server: Server) => {
 
             peer.init(data, room)
 
-            // const tracks = room.getIncomingTracks()
-
-            // for (let track of tracks.values()) {
-            //     console.error('addout going track', track.getId())
-            //     peer.addOutgoingTrack(track, track.stream)
-            // }
-
-            if (callback) {
-                callback({
-                    sdp: peer.getLocalDescription(),
-                    room: room.dumps()
-                })
-            }
+            ack({
+                sdp: peer.getLocalDescription(),
+                room: room.dumps()
+            })
 
             socket.to(roomId).emit('peerConnected', {
                 peer: peer.dumps()
             })
-
 
 
             peer.on('renegotiationneeded', () => {
@@ -83,56 +75,20 @@ const setupSocketServer = async (server: Server) => {
                 // }, (data) => {
                 //     peer.processRemoteDescription(data)
                 // })
-
             })
 
-            //peer.emit('renegotiationneeded')
 
             peer.on('incomingtrack', (track) => {
+
                 socket.emit('trackadded', {
                     trackId: track.getId()
                 })
             })
 
-
-            setTimeout(() => {
-                
-                const tracks = room.getIncomingTracks()
-                for (let track of tracks.values()) {
-                    console.error('addout going track', track.getId())
-                    peer.addOutgoingTrack(track, track.stream)
-                }
-
-                socket.emit('offer', {
-                    sdp: peer.getLocalDescription(),
-                    room: room.dumps()
-                }, (data) => {
-                    peer.processRemoteDescription(data)
-                })
-                
-
-            }, 5000);
-
         })
+        
 
-        socket.on('test', async (data:any, callback?:Function) => {
-    
-            const tracks = room.getIncomingTracks()
-
-            for (let track of tracks.values()) {
-                console.error('addout going track', track.getId())
-                peer.addOutgoingTrack(track, track.stream)
-            }
-
-            const sdp = data.sdp
-            peer.processRemoteDescription(sdp)
-            const answer = peer.getLocalDescription()
-
-            callback(answer)
-            
-        })
-
-        socket.on('addtrack', async (data:any, callback?: Function) => {
+        socket.on('publishtrack', async (data:any, ack: Function) => {
 
             const sdp = data.sdp
             const streamId = data.track.streamId
@@ -148,23 +104,23 @@ const setupSocketServer = async (server: Server) => {
             // do nothing
             const answer = peer.getLocalDescription()
 
-            callback(answer)
+            ack(answer)
             // find a way to limit bandwidth
-
         })
 
-        socket.on('removetrack', async (data: any, callback?: Function) => {
+        socket.on('unpublishtrack', async (data: any, ack: Function) => {
 
             const sdp = data.sdp
             const streamId = data.track.streamId
             const trackId = data.track.trackId
 
             peer.processRemoteDescription(sdp)
-
             // do nothing
-            peer.getLocalDescription()
-
+            const answer = peer.getLocalDescription()
+            ack(answer)
         })
+
+        
 
         socket.on('configure', async (data: any, callback?: Function) => {
 
