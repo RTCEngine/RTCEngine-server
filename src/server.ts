@@ -91,12 +91,11 @@ export default class Server extends EventEmitter {
     }
 
     public getRoom(roomId: string): Room {
-        return this.rooms.get(roomId)
-    }
-
-    public Room(roomId: string): Room {
-
-        const room = new Room(roomId)
+        
+        if(this.rooms.get(roomId)) {
+            return this.rooms.get(roomId)
+        }
+        const room = new Room(roomId, this)
         this.rooms.set(room.getId(), room)
         
         room.once('close', () => {

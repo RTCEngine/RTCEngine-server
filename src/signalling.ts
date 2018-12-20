@@ -28,6 +28,7 @@ const socketServer = socketio({
 })
 
 
+
 const setupSocketServer = async (server: Server) => {
 
     socketServer.on('connection', async (socket: SocketIO.Socket) => {
@@ -36,92 +37,121 @@ const setupSocketServer = async (server: Server) => {
 
         let data = jwt.decode(token, null, true)
 
-        const userId = data.user
+        const peerId = data.user
         const roomId = data.room
 
-        let room = server.getRoom(roomId)
+        const room = server.getRoom(roomId)
+        const peers = room.dumps()
+        const peer = room.newPeer(peerId)
 
-        if (!room) {
-            room = server.Room(roomId)
-        }
+        const tm = new TransactionManager(socket)
 
-        const peer = new Peer(userId, server)
+        tm.on('cmd', async (cmd) => {
 
-        socket.on('join', async (data: any, ack?: Function) => {
+            console.dir(cmd)
 
-            room.addPeer(peer)
+            if (cmd.name === 'join') {
+                socket.join(roomId)
+                peer.init(cmd.data)
 
-            socket.join(roomId)
-
-            peer.init(data, room)
-
-            ack({
-                sdp: peer.getLocalDescription(),
-                room: room.dumps()
-            })
-
-            socket.to(roomId).emit('peerConnected', {
-                peer: peer.dumps()
-            })
-
-
-            peer.on('renegotiationneeded', () => {
-
-                console.error('renegotiationneeded')
-
-                // socket.emit('offer', {
-                //     sdp: peer.getLocalDescription(),
-                //     room: room.dumps()
-                // }, (data) => {
-                //     peer.processRemoteDescription(data)
-                // })
-            })
-
-
-            peer.on('incomingtrack', (track) => {
-
-                socket.emit('trackadded', {
-                    trackId: track.getId()
+                const sdp = peer.createLocalDescription()
+                cmd.accept({ sdp: sdp, room: peers})
+                peer.on('renegotiationneeded', () => {
+                    console.log('renegotiationneeded')
                 })
-            })
+                peer.on('incomingtrack', (track) => {
+                    console.log('incomingtrack')
+                })
+                tm.broadcast(roomId, 'peerconnected', {peer:peer.dumps()})
+                return
+            }
+            
+            if (cmd.name === 'publish') {
 
+                const sdp = cmd.data.sdp
+                const streamId = cmd.data.stream.streamId
+                const bitrate = cmd.data.stream.bitrate
+                const attributes = cmd.data.stream.attributes
+
+                room.setBitrate(streamId, bitrate)
+                room.setAttribute(streamId, attributes)
+    
+                peer.processRemoteDescription(sdp)
+    
+                const answer = peer.createLocalDescription()
+                cmd.accept({sdp:answer})
+                return
+            }
+
+            if (cmd.name === 'unpublish') {
+
+                const sdp = cmd.data.sdp
+                const streamId = cmd.data.stream.streamId
+    
+                peer.processRemoteDescription(sdp)
+
+                const answer = peer.createLocalDescription()
+                cmd.accept({sdp:answer})
+                return
+            }
+
+            if (cmd.name === 'subscribe') {
+
+                const streamId = cmd.data.stream.streamId
+                const stream = room.getIncomingStream(streamId)
+
+                console.log('subscribe')
+                console.dir(stream)
+                
+                let outgoingStream = peer.getTransport().createOutgoingStream(stream.getId())
+
+                for (let track of stream.getTracks()) {
+                    const outgoing = outgoingStream.createTrack(track.getMedia())
+                    outgoing.attachTo(track)
+
+                    track.once('stopped',()=>{
+                        outgoing.stop()
+                    })
+                }
+
+                cmd.accept({ sdp: peer.createLocalDescription()})
+                return
+            }
+
+            if (cmd.name === 'unsubscribe') {
+                const streamId = cmd.data.stream.streamId
+                const stream = peer.getOutgoingStream(streamId)
+                stream.stop()
+                cmd.accept({ sdp: peer.createLocalDescription()})
+                return
+            }
+
+            if (cmd.name === 'answer') {
+                const sdp = cmd.data.sdp
+                peer.processRemoteDescription(sdp)
+                cmd.accept()
+                return
+            }
+
+            if (cmd.name === 'configure') {
+
+            }
+
+            if (cmd.name === 'leave') {
+
+                socket.disconnect(true)
+                peer.close()
+            }
+
+            if (cmd.name === 'message') {
+                cmd.accept()
+                tm.broadcast(roomId,'message', cmd.data)
+            }
+            
         })
+
+
         
-
-        socket.on('publishtrack', async (data:any, ack: Function) => {
-
-            const sdp = data.sdp
-            const streamId = data.track.streamId
-            const trackId = data.track.trackId
-            const bitrate = data.track.bitrate
-            const attributes = data.track.attributes
-
-            room.setBitrate(trackId, bitrate)
-            room.setAttribute(trackId, attributes)
-
-            peer.processRemoteDescription(sdp)
-
-            // do nothing
-            const answer = peer.getLocalDescription()
-
-            ack(answer)
-            // find a way to limit bandwidth
-        })
-
-        socket.on('unpublishtrack', async (data: any, ack: Function) => {
-
-            const sdp = data.sdp
-            const streamId = data.track.streamId
-            const trackId = data.track.trackId
-
-            peer.processRemoteDescription(sdp)
-            // do nothing
-            const answer = peer.getLocalDescription()
-            ack(answer)
-        })
-
-        
-
         socket.on('configure', async (data: any, callback?: Function) => {
 
             const streamId = data.msid
@@ -167,7 +197,7 @@ const setupSocketServer = async (server: Server) => {
         })
 
         socket.on('disconnect', async () => {
-            socket.to(room.getId()).emit('peerRemoved', {
+            socket.to(room.getId()).emit('peerremoved', {
                 peer: peer.dumps()
             })
             socket.leaveAll()

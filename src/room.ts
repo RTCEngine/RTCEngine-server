@@ -5,6 +5,7 @@ const MediaServer = require('medooze-media-server')
 import Peer from './peer'
 import config from './config'
 import Logger from './logger'
+import Server from './server';
 
 const log = new Logger('room')
 
@@ -15,11 +16,12 @@ export default class Room extends EventEmitter {
     private peers: Map<string, Peer>
     private attributes: Map<string, any>
     private bitrates: Map<string, any>
-    private tracksMap: Map<string, string>
+    private tracks: Map<string, string>
     private endpoint: any
+    private server:Server
     private activeSpeakerDetector: any
 
-    constructor(room: string, endpoint?:any) {
+    constructor(room: string,server:Server, endpoint?:any) {
 
         super()
         this.setMaxListeners(Infinity)
@@ -29,8 +31,8 @@ export default class Room extends EventEmitter {
         this.peers = new Map()
         this.attributes = new Map()
         this.bitrates = new Map()
-        this.tracksMap = new Map()
-
+        this.tracks = new Map()
+        this.server = server
         this.endpoint = MediaServer.createEndpoint(config.media.endpoint)
 
         this.activeSpeakerDetector = MediaServer.createActiveSpeakerDetector()
@@ -39,7 +41,7 @@ export default class Room extends EventEmitter {
 
         this.activeSpeakerDetector.on('activespeakerchanged', (track) => {
 
-            let peerId = this.tracksMap.get(track.getId())
+            let peerId = this.tracks.get(track.getId())
 
             if (peerId) {
                 this.emit('activespeakerchanged', peerId)
@@ -71,26 +73,15 @@ export default class Room extends EventEmitter {
         return this.peers.get(peer)
     }
 
-    public addPeer(peer: Peer) {
+    public newPeer(peerId:string): Peer {
 
-        if (this.peers.has(peer.getId())) {
-            log.warn('peer alread in room')
-            return
-        }
-
+        const peer = new Peer(peerId, this, this.server)
+        
         this.peers.set(peer.getId(), peer)
 
-
         peer.on('incomingtrack', (track,stream) => {
-            
-            for (let other of this.peers.values()) {
-                if(peer.getId() !== other.getId()) {
-                    other.addOutgoingTrack(track, stream)
-                }
-            }
 
             if (track.getMedia() === 'audio') {
-
                 this.activeSpeakerDetector.addSpeaker(track)
                 track.once('stoped', () => {
                     this.activeSpeakerDetector.removeSpeaker(track)
@@ -102,9 +93,7 @@ export default class Room extends EventEmitter {
         peer.once('close', () => {
 
             this.peers.delete(peer.getId())
-
             this.emit('peers', this.peers.values())
-
             if (this.peers.size == 0) {
                 log.debug('last peer in the room left, closeing the room ', this.roomId)
                 this.close()
@@ -112,6 +101,8 @@ export default class Room extends EventEmitter {
         })
 
         this.emit('peers', this.peers.values())
+
+        return peer
     }
 
     public close() {
@@ -144,6 +135,24 @@ export default class Room extends EventEmitter {
             }
         }
         return tracks
+    }
+
+    public getIncomingStream(streamId:string) {
+
+        for (let peer of this.peers.values()) {
+            if (peer.getIncomingStream(streamId)) {
+                return peer.getIncomingStream(streamId)
+            }
+        }
+        return null
+    }
+
+    public getIncomingStreams() {
+        let streams = []
+        for (let peer of this.peers.values()) {
+            streams = streams.concat(peer.getIncomingStreams())
+        }
+        return streams
     }
 
     public getAttribute(trackId: string): any {

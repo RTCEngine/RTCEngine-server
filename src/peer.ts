@@ -40,9 +40,10 @@ class Peer extends EventEmitter {
     private sdpManager: any
 
 
-    constructor(peerId: string, server: Server) {
+    constructor(peerId: string, room: Room ,server: Server) {
         super()
 
+        this.room = room
         this.server = server
         this.peerId = peerId
     }
@@ -51,8 +52,13 @@ class Peer extends EventEmitter {
         return this.peerId
     }
 
-    public getLocalDescription() {
+    public createLocalDescription() {
         return  this.sdpManager.createLocalDescription()
+    }
+
+    public getTransport() {
+
+        return this.transport
     }
 
     public getIncomingTracks(): Map<string,any> {
@@ -63,11 +69,41 @@ class Peer extends EventEmitter {
         return this.outgoingTracks
     }
 
-    public init(data: any, room: Room) {
+    public getIncomingStream(streamId: string) {
 
-        this.room = room
+        if (this.transport) {
+            return this.transport.getIncomingStream(streamId)
+        }
+        return null
+    }
 
-        const endpoint = room.getEndpoint()
+    public getIncomingStreams() {
+
+        if (this.transport) {
+            return this.transport.getIncomingStreams()
+        }
+        return []
+    }
+
+    public getOutgoingStream(streamId: string) {
+
+        if (this.transport) {
+            return this.transport.getOutgoingStream(streamId)
+        }
+        return null
+    }
+
+    public getOutgoingStreams() {
+        
+        if (this.transport) {
+            return this.transport.getOutgoingStreams()
+        }
+        return []
+    }
+
+    public init(data: any) {
+
+        const endpoint = this.room.getEndpoint()
 
         this.sdpManager = endpoint.createSDPManager('unified-plan', config.media.capabilities)
 
@@ -176,22 +212,19 @@ class Peer extends EventEmitter {
     }
 
     public dumps(): any {
-
-        const incomingTracks = Array.from(this.incomingTracks.values())
         
-        const tracks = incomingTracks.map((track) => {
+        const incomingStreams = this.getIncomingStreams()
+        const streams = incomingStreams.map((stream) => {
             return {
-                streamId: track.stream.id,
-                trackId: track.getId(),
-                media: track.getMedia(),
-                bitrate: this.room.getBitrate(track.getId()),
-                attributes: this.room.getAttribute(track.getId())
+                streamId:stream.getId(),
+                bitrate: this.room.getBitrate(stream.getId()),
+                attributes: this.room.getAttribute(stream.getId())
             }
         })
-        
+
         const info = {
             peerId: this.peerId,
-            tracks: tracks
+            streams: streams
         }
 
         return info
