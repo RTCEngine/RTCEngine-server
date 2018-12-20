@@ -76,7 +76,7 @@ export default class Room extends EventEmitter {
     public newPeer(peerId:string): Peer {
 
         const peer = new Peer(peerId, this, this.server)
-        
+
         this.peers.set(peer.getId(), peer)
 
         peer.on('incomingtrack', (track,stream) => {
@@ -127,15 +127,6 @@ export default class Room extends EventEmitter {
         this.emit('close')
     }
 
-    public getIncomingTracks(): Map<string, any> {
-        const tracks = new Map()
-        for (let peer of this.peers.values()) {
-            for (let track of peer.getIncomingTracks().values()) {
-                tracks.set(track.getId(), track)
-            }
-        }
-        return tracks
-    }
 
     public getIncomingStream(streamId:string) {
 

@@ -46,6 +46,7 @@ const setupSocketServer = async (server: Server) => {
 
         const tm = new TransactionManager(socket)
 
+
         tm.on('cmd', async (cmd) => {
 
             console.dir(cmd)
@@ -65,7 +66,7 @@ const setupSocketServer = async (server: Server) => {
                 tm.broadcast(roomId, 'peerconnected', {peer:peer.dumps()})
                 return
             }
-            
+
             if (cmd.name === 'publish') {
 
                 const sdp = cmd.data.sdp
@@ -80,6 +81,9 @@ const setupSocketServer = async (server: Server) => {
     
                 const answer = peer.createLocalDescription()
                 cmd.accept({sdp:answer})
+
+                // broadcast this stream 
+                tm.broadcast(roomId, 'streampublished', {peer: peer.dumps()})
                 return
             }
 
@@ -92,6 +96,9 @@ const setupSocketServer = async (server: Server) => {
 
                 const answer = peer.createLocalDescription()
                 cmd.accept({sdp:answer})
+
+                // broadcast this unpublish
+                tm.broadcast(roomId, 'streamunpublished', {peer: peer.dumps})
                 return
             }
 
@@ -100,9 +107,6 @@ const setupSocketServer = async (server: Server) => {
                 const streamId = cmd.data.stream.streamId
                 const stream = room.getIncomingStream(streamId)
 
-                console.log('subscribe')
-                console.dir(stream)
-                
                 let outgoingStream = peer.getTransport().createOutgoingStream(stream.getId())
 
                 for (let track of stream.getTracks()) {
@@ -133,9 +137,6 @@ const setupSocketServer = async (server: Server) => {
                 return
             }
 
-            if (cmd.name === 'configure') {
-
-            }
 
             if (cmd.name === 'leave') {
 
@@ -150,56 +151,55 @@ const setupSocketServer = async (server: Server) => {
             
         })
 
+        tm.on('event', async (cmd) => {
 
+            if (cmd.name === 'configure') {
+
+                const streamId = cmd.data.streamId
+                if (peer.getIncomingStreams().get(streamId)) {
+                    tm.broadcast(roomId, 'configure', cmd.data)
+                    return
+                }
+
+                let outgoingStream
+                for (let stream of peer.getOutgoingStreams()) {
+                    if (stream.getId() === streamId) {
+                        outgoingStream = stream
+                    }
+                }
+
+                if (!outgoingStream) {
+                    return
+                }
+
+                if ('video' in data) {
+                    let muting = cmd.data.muting
+                    for (let track of outgoingStream.getVideoTracks()) {
+                        track.mute(muting)
+                    }
+                }
+
+                if ('audio' in data) {
+                    let muting = cmd.data.muting
+                    for (let track of outgoingStream.getAudioTracks()) {
+                        track.mute(muting)
+                    }
+                }    
+            }
+
+            if (cmd.name === 'message') {
+                tm.broadcast(roomId, 'message', cmd.data)
+                return
+            }
+
+            if (cmd.name === 'leave') {
+                socket.disconnect(true)
+                peer.close()
+            }
+        })
         
-        socket.on('configure', async (data: any, callback?: Function) => {
-
-            const streamId = data.msid
-
-            // localstream 
-            // if (peer.getIncomingStreams().get(streamId)) {
-            //     socket.to(room.getId()).emit('configure', data)
-            //     return
-            // }
-
-            // const outgoingStream = peer.getOutgoingStreams().get(streamId)
-
-            // if (!outgoingStream) {
-            //     return
-            // }
-
-            // if ('video' in data) {
-            //     let muting = data.muting
-
-            //     for (let track of outgoingStream.getVideoTracks()) {
-            //         track.mute(muting)
-            //     }
-            // }
-
-            // if ('audio' in data) {
-            //     let muting = data.muting
-
-            //     for (let track of outgoingStream.getAudioTracks()) {
-            //         track.mute(muting)
-            //     }
-            // }
-        })
-
-        socket.on('leave', async (data: any, callback?: Function) => {
-
-            socket.disconnect(true)
-
-            peer.close()
-        })
-
-        socket.on('message', async (data: any, callback?: Function) => {
-            socket.to(room.getId()).emit('message', data)
-        })
-
         socket.on('disconnect', async () => {
-            socket.to(room.getId()).emit('peerremoved', {
-                peer: peer.dumps()
-            })
+            tm.broadcast(roomId, 'peerremoved', {peer: peer.dumps()})
             socket.leaveAll()
             peer.close()
         })

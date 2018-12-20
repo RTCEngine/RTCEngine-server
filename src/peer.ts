@@ -32,9 +32,6 @@ class Peer extends EventEmitter {
     private bitrate: number = 0
     private room: Room
 
-    private incomingTracks: Map<string,any> = new Map()
-    private outgoingTracks: Map<string,any> = new Map()
-
     private server: Server
     private transport: any
     private sdpManager: any
@@ -60,15 +57,7 @@ class Peer extends EventEmitter {
 
         return this.transport
     }
-
-    public getIncomingTracks(): Map<string,any> {
-        return this.incomingTracks
-    }
-
-    public getOutgoingTracks(): Map<string,any> {
-        return this.outgoingTracks
-    }
-
+    
     public getIncomingStream(streamId: string) {
 
         if (this.transport) {
@@ -115,34 +104,18 @@ class Peer extends EventEmitter {
 
             log.debug('newtrack ==== ', track.getId())
 
-            if (!this.incomingTracks.get(track.getId())) {
-                this.incomingTracks.set(track.getId(), track)
-            }
-
             track.stream = stream
 
-            track.once('stopped', () => {
-                this.incomingTracks.delete(track.getId())
-            })
-
-            this.emit('incomingtrack', track)
+            this.emit('incomingtrack', track, stream)
         })
 
         this.transport.on('outgoingtrack', (track, stream) => {
 
             log.debug('outgoingtrack =========', track.getId())
 
-            if (!this.outgoingTracks.get(track.getId())) {
-                this.outgoingTracks.set(track.getId(), track)
-            }
-
             track.stream = stream
 
-            track.once('stopped', () => {
-                this.outgoingTracks.delete(track.getId())
-            })
-
-            this.emit('outgoingtrack', track)
+            this.emit('outgoingtrack', track, stream)
 
         })
 
@@ -183,20 +156,9 @@ class Peer extends EventEmitter {
 
         this.closed = true
 
-        for (let track of this.incomingTracks.values()) {
-            track.stop()
-        }
-
-        for (let track of this.outgoingTracks.values()) {
-            track.stop()
-        }
-
         if (this.transport) {
             this.transport.stop()
         }
-
-        this.incomingTracks.clear()
-        this.outgoingTracks.clear()
 
         this.emit('close')
     }
@@ -212,7 +174,7 @@ class Peer extends EventEmitter {
     }
 
     public dumps(): any {
-        
+
         const incomingStreams = this.getIncomingStreams()
         const streams = incomingStreams.map((stream) => {
             return {
