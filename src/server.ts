@@ -18,6 +18,14 @@ import apiRouter from './api'
 import socketHandle from './signalling'
 import { EventEmitter } from 'events'
 
+
+/**
+ *
+ *
+ * @export
+ * @class Server
+ * @extends {EventEmitter}
+ */
 export default class Server extends EventEmitter {
 
     private app: express.Application
@@ -40,6 +48,15 @@ export default class Server extends EventEmitter {
         this.routes()
     }
 
+    
+    /**
+     *
+     *
+     * @param {number} port
+     * @param {string} hostname
+     * @param {Function} [callback]
+     * @memberof Server
+     */
     public start(port: number, hostname: string, callback?: Function) {
 
         this.httpServer = this.app.listen(port, hostname, callback)
@@ -72,7 +89,6 @@ export default class Server extends EventEmitter {
             next(err)
         })
     }
-
 
     private routes() {
         //use router middleware

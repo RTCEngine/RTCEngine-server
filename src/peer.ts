@@ -21,7 +21,12 @@ const CodecInfo = SemanticSDP.CodecInfo
 
 const log = new Logger('peer')
 
-
+/**
+ *
+ *
+ * @class Peer
+ * @extends {EventEmitter}
+ */
 class Peer extends EventEmitter {
 
     private usePlanB: boolean = true
@@ -37,6 +42,13 @@ class Peer extends EventEmitter {
     private sdpManager: any
 
 
+    /**
+     *Creates an instance of Peer.
+     * @param {string} peerId
+     * @param {Room} room
+     * @param {Server} server
+     * @memberof Peer
+     */
     constructor(peerId: string, room: Room ,server: Server) {
         super()
 
@@ -45,19 +57,32 @@ class Peer extends EventEmitter {
         this.peerId = peerId
     }
 
+    /**
+     *
+     *
+     * @returns
+     * @memberof Peer
+     */
     public getId() {
         return this.peerId
     }
 
-    public createLocalDescription() {
+
+    /**
+     *
+     *
+     * @returns {string}
+     * @memberof Peer
+     */
+    public createLocalDescription():string {
         return  this.sdpManager.createLocalDescription()
     }
 
     public getTransport() {
-
         return this.transport
     }
-    
+
+
     public getIncomingStream(streamId: string) {
 
         if (this.transport) {
@@ -102,48 +127,18 @@ class Peer extends EventEmitter {
 
         this.transport.on('incomingtrack', (track, stream) => {
 
-            log.debug('newtrack ==== ', track.getId())
-
             track.stream = stream
-
             this.emit('incomingtrack', track, stream)
         })
 
+
         this.transport.on('outgoingtrack', (track, stream) => {
-
-            log.debug('outgoingtrack =========', track.getId())
-
             track.stream = stream
-
-            this.emit('outgoingtrack', track, stream)
-
         })
 
         this.sdpManager.on('renegotiationneeded', () => {
-
-            console.error('renegotiationneeded =============')
             this.emit('renegotiationneeded')
         })
-    }
-
-    public addOutgoingTrack(track, stream) {
-        
-        const outgoingStreamId = 'remote-' + stream.getId()
-
-        let outgoingStream = this.transport.getOutgoingStream(outgoingStreamId)
-
-        if (!outgoingStream) {
-            outgoingStream = this.transport.createOutgoingStream(outgoingStreamId)
-        }
-
-        const outgoing = outgoingStream.createTrack(track.getMedia())
-
-        outgoing.attachTo(track)
-
-        track.once('stopped', () => {
-            outgoing.stop()
-        })
-
     }
 
     public close() {
