@@ -73,40 +73,38 @@ const setupSocketServer = async (server: Server) => {
                 const streamId = cmd.data.stream.streamId
                 const bitrate = cmd.data.stream.bitrate
                 const attributes = cmd.data.stream.attributes
-
                 room.setBitrate(streamId, bitrate)
                 room.setAttribute(streamId, attributes)
-    
                 peer.processRemoteDescription(sdp)
-    
                 const answer = peer.createLocalDescription()
                 cmd.accept({sdp:answer})
-
                 // broadcast this stream 
-                tm.broadcast(roomId, 'streampublished', {peer: peer.dumps()})
+                let data = {
+                    peer: peer.dumps(),
+                    stream: room.getStreamData(streamId)
+                }
+                tm.broadcast(roomId, 'streampublished', data)
                 return
             }
 
             if (cmd.name === 'unpublish') {
-
                 const sdp = cmd.data.sdp
                 const streamId = cmd.data.stream.streamId
-    
                 peer.processRemoteDescription(sdp)
-
                 const answer = peer.createLocalDescription()
                 cmd.accept({sdp:answer})
-
                 // broadcast this unpublish
-                tm.broadcast(roomId, 'streamunpublished', {peer: peer.dumps})
+                let data = {
+                    peer: peer.dumps(),
+                    stream: room.getStreamData(streamId)
+                }
+                tm.broadcast(roomId, 'streamunpublished', data)
                 return
             }
 
             if (cmd.name === 'subscribe') {
-
                 const streamId = cmd.data.stream.streamId
                 const stream = room.getIncomingStream(streamId)
-
                 let outgoingStream = peer.getTransport().createOutgoingStream(stream.getId())
 
                 for (let track of stream.getTracks()) {
@@ -125,7 +123,9 @@ const setupSocketServer = async (server: Server) => {
             if (cmd.name === 'unsubscribe') {
                 const streamId = cmd.data.stream.streamId
                 const stream = peer.getOutgoingStream(streamId)
-                stream.stop()
+                if (stream) {
+                    stream.stop()
+                }
                 cmd.accept({ sdp: peer.createLocalDescription()})
                 return
             }
@@ -136,10 +136,8 @@ const setupSocketServer = async (server: Server) => {
                 cmd.accept()
                 return
             }
-
-
+            
             if (cmd.name === 'leave') {
-
                 socket.disconnect(true)
                 peer.close()
             }

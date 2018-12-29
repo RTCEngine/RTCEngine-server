@@ -81,12 +81,13 @@ export default class Room extends EventEmitter {
 
         peer.on('incomingtrack', (track,stream) => {
 
-            if (track.getMedia() === 'audio') {
-                this.activeSpeakerDetector.addSpeaker(track)
-                track.once('stoped', () => {
-                    this.activeSpeakerDetector.removeSpeaker(track)
-                })   
-            }
+            // diable this for now 
+            // if (track.getMedia() === 'audio') {
+            //     this.activeSpeakerDetector.addSpeaker(track)
+            //     track.once('stoped', () => {
+            //         this.activeSpeakerDetector.removeSpeaker(track)
+            //     })   
+            // }
             
         })
 
@@ -146,20 +147,28 @@ export default class Room extends EventEmitter {
         return streams
     }
 
-    public getAttribute(trackId: string): any {
-        return this.attributes.get(trackId)
+    public getAttribute(streamId: string): any {
+        return this.attributes.get(streamId)
     }
 
-    public setAttribute(trackId: string, attibute: any) {
-        this.attributes.set(trackId, attibute)
+    public setAttribute(streamId: string, attibute: any) {
+        this.attributes.set(streamId, attibute)
     }
 
-    public getBitrate(trackId: string): any {
-        return this.bitrates.get(trackId) || 0
+    public getBitrate(streamId: string): any {
+        return this.bitrates.get(streamId) || 0
     }
 
-    public setBitrate(trackId: string, bitrate: any) {
-        return this.bitrates.set(trackId, bitrate)
+    public setBitrate(streamId: string, bitrate: any) {
+        return this.bitrates.set(streamId, bitrate)
+    }
+
+    public getStreamData(streamId: string): any {
+        return {
+            streamId: streamId,
+            attributes: this.getAttribute(streamId),
+            bitrate: this.getBitrate(streamId)
+        }
     }
 
     public dumps(): any {
