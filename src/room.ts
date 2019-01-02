@@ -80,14 +80,6 @@ export default class Room extends EventEmitter {
         this.peers.set(peer.getId(), peer)
 
         peer.on('incomingtrack', (track,stream) => {
-
-            // diable this for now 
-            // if (track.getMedia() === 'audio') {
-            //     this.activeSpeakerDetector.addSpeaker(track)
-            //     track.once('stoped', () => {
-            //         this.activeSpeakerDetector.removeSpeaker(track)
-            //     })   
-            // }
             
         })
 

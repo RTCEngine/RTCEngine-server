@@ -197,9 +197,16 @@ const setupSocketServer = async (server: Server) => {
         })
         
         socket.on('disconnect', async () => {
+            for (let stream of peer.getIncomingStreams()) {
+                let data = {
+                    peer: peer.dumps(),
+                    stream: room.getStreamData(stream.getId())
+                }
+                tm.broadcast(roomId, 'streamunpublished', data)
+            }
             tm.broadcast(roomId, 'peerremoved', {peer: peer.dumps()})
-            socket.leaveAll()
             peer.close()
+            socket.leaveAll()
         })
     })
 }

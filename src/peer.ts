@@ -58,8 +58,6 @@ class Peer extends EventEmitter {
     }
 
     /**
-     *
-     *
      * @returns
      * @memberof Peer
      */
@@ -67,10 +65,7 @@ class Peer extends EventEmitter {
         return this.peerId
     }
 
-
     /**
-     *
-     *
      * @returns {string}
      * @memberof Peer
      */

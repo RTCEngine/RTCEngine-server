@@ -15,12 +15,14 @@ export default {
         debug: true,
         endpoint: '127.0.0.1',
         ultraDebug: true,
-        rtcMinPort: 10000,
-        rtcMaxPort: 10002,
         iceTransportPolicy: 'all',   // 'all' or 'relay'
         capabilities: {
             audio: {
                 codecs: ['opus'],
+                rtx:true,
+                rtcpfbs: [
+                    { "id": "nack" }
+                ],
                 extensions: [
                     'urn:ietf:params:rtp-hdrext:ssrc-audio-level',
                     'http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01'
