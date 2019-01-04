@@ -46,26 +46,17 @@ const setupSocketServer = async (server: Server) => {
 
         const tm = new TransactionManager(socket)
 
-
         tm.on('cmd', async (cmd) => {
 
             console.dir(cmd)
 
             if (cmd.name === 'join') {
                 socket.join(roomId)
-                peer.init(cmd.data)
-
-                const sdp = peer.createLocalDescription()
-                cmd.accept({ sdp: sdp, room: peers})
-                peer.on('renegotiationneeded', () => {
-                    console.log('renegotiationneeded')
-                })
-                peer.on('incomingtrack', (track) => {
-                    console.log('incomingtrack')
-                })
+                cmd.accept({room: peers})
                 tm.broadcast(roomId, 'peerconnected', {peer:peer.dumps()})
                 return
             }
+
 
             if (cmd.name === 'publish') {
 
@@ -73,10 +64,12 @@ const setupSocketServer = async (server: Server) => {
                 const streamId = cmd.data.stream.streamId
                 const bitrate = cmd.data.stream.bitrate
                 const attributes = cmd.data.stream.attributes
+
                 room.setBitrate(streamId, bitrate)
                 room.setAttribute(streamId, attributes)
-                peer.processRemoteDescription(sdp)
-                const answer = peer.createLocalDescription()
+
+                const { answer, } = peer.addIncoming(sdp, streamId)
+
                 cmd.accept({sdp:answer})
                 // broadcast this stream 
                 let data = {
@@ -88,11 +81,10 @@ const setupSocketServer = async (server: Server) => {
             }
 
             if (cmd.name === 'unpublish') {
-                const sdp = cmd.data.sdp
+
                 const streamId = cmd.data.stream.streamId
-                peer.processRemoteDescription(sdp)
-                const answer = peer.createLocalDescription()
-                cmd.accept({sdp:answer})
+                peer.removeIncoming(streamId)
+                cmd.accept({})
                 // broadcast this unpublish
                 let data = {
                     peer: peer.dumps(),
@@ -103,39 +95,22 @@ const setupSocketServer = async (server: Server) => {
             }
 
             if (cmd.name === 'subscribe') {
+                const sdp = cmd.data.sdp
                 const streamId = cmd.data.stream.streamId
-                const stream = room.getIncomingStream(streamId)
-                let outgoingStream = peer.getTransport().createOutgoingStream(stream.getId())
 
-                for (let track of stream.getTracks()) {
-                    const outgoing = outgoingStream.createTrack(track.getMedia())
-                    outgoing.attachTo(track)
+                const {answer,} = peer.addOutgoing(sdp, streamId)
 
-                    track.once('stopped',()=>{
-                        outgoing.stop()
-                    })
-                }
-
-                cmd.accept({ sdp: peer.createLocalDescription()})
+                cmd.accept({ sdp: answer, stream: room.getStreamData(streamId)})
                 return
             }
 
             if (cmd.name === 'unsubscribe') {
                 const streamId = cmd.data.stream.streamId
-                const stream = peer.getOutgoingStream(streamId)
-                if (stream) {
-                    stream.stop()
-                }
-                cmd.accept({ sdp: peer.createLocalDescription()})
+                peer.removeOutgoing(streamId)
+                cmd.accept({ })
                 return
             }
 
-            if (cmd.name === 'answer') {
-                const sdp = cmd.data.sdp
-                peer.processRemoteDescription(sdp)
-                cmd.accept()
-                return
-            }
             
             if (cmd.name === 'leave') {
                 socket.disconnect(true)
@@ -160,7 +135,7 @@ const setupSocketServer = async (server: Server) => {
                 }
 
                 let outgoingStream
-                for (let stream of peer.getOutgoingStreams()) {
+                for (let stream of peer.getOutgoingStreams().values()) {
                     if (stream.getId() === streamId) {
                         outgoingStream = stream
                     }
@@ -197,7 +172,7 @@ const setupSocketServer = async (server: Server) => {
         })
         
         socket.on('disconnect', async () => {
-            for (let stream of peer.getIncomingStreams()) {
+            for (let stream of peer.getIncomingStreams().values()) {
                 let data = {
                     peer: peer.dumps(),
                     stream: room.getStreamData(stream.getId())

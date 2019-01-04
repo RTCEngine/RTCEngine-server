@@ -121,20 +121,16 @@ export default class Room extends EventEmitter {
     }
 
 
-    public getIncomingStream(streamId:string) {
-
-        for (let peer of this.peers.values()) {
-            if (peer.getIncomingStream(streamId)) {
-                return peer.getIncomingStream(streamId)
-            }
-        }
-        return null
+    public getIncomingStream(streamId:string): any {
+        return this.getIncomingStreams().get(streamId)
     }
 
     public getIncomingStreams() {
-        let streams = []
+        const streams = new Map()
         for (let peer of this.peers.values()) {
-            streams = streams.concat(peer.getIncomingStreams())
+            for (let stream of peer.getIncomingStreams().values()) {
+                streams.set(stream.getId(), stream)
+            }
         }
         return streams
     }

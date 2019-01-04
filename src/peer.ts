@@ -29,18 +29,15 @@ const log = new Logger('peer')
  */
 class Peer extends EventEmitter {
 
-    private usePlanB: boolean = true
     private peerId: string
     private roomId: string
     private closed: boolean = false
-    // after Unified Plan is supported, we should set bitrate for every mediasource
-    private bitrate: number = 0
     private room: Room
 
     private server: Server
-    private transport: any
-    private sdpManager: any
 
+    private incomingStreams: Map<string, any> = new Map()
+    private outgoingStreams: Map<string, any> = new Map()
 
     /**
      *Creates an instance of Peer.
@@ -65,75 +62,95 @@ class Peer extends EventEmitter {
         return this.peerId
     }
 
-    /**
-     * @returns {string}
-     * @memberof Peer
-     */
-    public createLocalDescription():string {
-        return  this.sdpManager.createLocalDescription()
+    public getIncomingStreams(): Map<string, any> {
+        return this.incomingStreams
     }
 
-    public getTransport() {
-        return this.transport
+    public getOutgoingStreams(): Map<string, any> {
+        return this.outgoingStreams
     }
 
+    public addIncoming(sdp: string, streamId:string, data?: any) {
 
-    public getIncomingStream(streamId: string) {
-
-        if (this.transport) {
-            return this.transport.getIncomingStream(streamId)
-        }
-        return null
-    }
-
-    public getIncomingStreams() {
-
-        if (this.transport) {
-            return this.transport.getIncomingStreams()
-        }
-        return []
-    }
-
-    public getOutgoingStream(streamId: string) {
-
-        if (this.transport) {
-            return this.transport.getOutgoingStream(streamId)
-        }
-        return null
-    }
-
-    public getOutgoingStreams() {
-        
-        if (this.transport) {
-            return this.transport.getOutgoingStreams()
-        }
-        return []
-    }
-
-    public init(data: any) {
-
+        const offer = SDPInfo.process(sdp)
         const endpoint = this.room.getEndpoint()
+        const transport = endpoint.createTransport(offer)
 
-        this.sdpManager = endpoint.createSDPManager('unified-plan', config.media.capabilities)
-
-        this.sdpManager.processRemoteDescription(data.sdp)
-
-        this.transport = this.sdpManager.getTransport()
-
-        this.transport.on('incomingtrack', (track, stream) => {
-
-            track.stream = stream
-            this.emit('incomingtrack', track, stream)
+        const answer = offer.answer({
+            dtls: transport.getLocalDTLSInfo(),
+            ice: transport.getLocalICEInfo(),
+            candidates: endpoint.getLocalCandidates(),
+            capabilities: config.media.capabilities
         })
 
+        transport.setLocalProperties(answer)
+        const streamInfo = offer.getStream(streamId)
+        const incoming = transport.createIncomingStream(streamInfo)
+        incoming.transport = transport
+        this.incomingStreams.set(incoming.getId(), incoming)
 
-        this.transport.on('outgoingtrack', (track, stream) => {
-            track.stream = stream
+        // todo set bitrate
+        return { 
+            incoming: incoming,
+            answer: answer.toString()
+        }
+    }
+
+    public removeIncoming(streamId:string) {
+
+        const incoming = this.incomingStreams.get(streamId)
+        if (!incoming){
+            return
+        }
+
+        if (incoming.transport) {
+            incoming.transport.stop()
+        }
+        this.incomingStreams.delete(streamId)
+        return
+    }
+
+    public addOutgoing(sdp: string, streamId:string, data?: any) {
+
+        const offer = SDPInfo.process(sdp)
+        const endpoint = this.room.getEndpoint()
+        const transport = endpoint.createTransport(offer)
+
+        const answer = offer.answer({
+            dtls: transport.getLocalDTLSInfo(),
+            ice: transport.getLocalICEInfo(),
+            candidates: endpoint.getLocalCandidates(),
+            capabilities: config.media.capabilities
         })
 
-        this.sdpManager.on('renegotiationneeded', () => {
-            this.emit('renegotiationneeded')
-        })
+        const incoming = this.room.getIncomingStream(streamId)
+
+        const outgoing = transport.createOutgoingStream(incoming.getStreamInfo())
+        outgoing.attachTo(incoming)
+        outgoing.transport = transport
+
+        this.outgoingStreams.set(outgoing.getId(), outgoing)
+
+        answer.addStream(outgoing.getStreamInfo())
+
+        return { 
+            outgoing: outgoing,
+            answer: answer.toString()
+        }
+    }
+
+    public removeOutgoing(streamId:string) {
+
+        const outgoing = this.outgoingStreams.get(streamId)
+        if (!outgoing){
+            return
+        }
+
+        if (outgoing.transport) {
+            outgoing.transport.stop()
+        }
+        this.outgoingStreams.delete(streamId)
+        return
     }
 
     public close() {
@@ -146,26 +163,24 @@ class Peer extends EventEmitter {
 
         this.closed = true
 
-        if (this.transport) {
-            this.transport.stop()
+
+        for (let stream of this.incomingStreams.values()) {
+            stream.transport.stop()
         }
+
+        for (let stream of this.outgoingStreams.values()) {
+            stream.transport.stop()
+        }
+
+        this.incomingStreams.clear()
+        this.outgoingStreams.clear()
 
         this.emit('close')
     }
 
-    public processRemoteDescription(sdp:string) {
-
-        try {
-            this.sdpManager.processRemoteDescription(sdp)
-            // do we need send this back 
-        } catch (error) {
-            log.error(error)
-        }
-    }
-
     public dumps(): any {
-
-        const incomingStreams = this.getIncomingStreams()
+        
+        const incomingStreams = Array.from(this.getIncomingStreams().values())
         const streams = incomingStreams.map((stream) => {
             return {
                 streamId:stream.getId(),
