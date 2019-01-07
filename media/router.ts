@@ -21,29 +21,20 @@ const CodecInfo = SemanticSDP.CodecInfo
  * @class Router
  * @extends {EventEmitter}
  */
-class Router extends EventEmitter {
+class MediaRouter extends EventEmitter {
 
     private routerId: string
     private capabilities: any
     private endpoint: any
     private incoming: any
-    private outgoings: Array<any> = new Array()
+    private outgoings: Map<string,any> = new Map()
 
 
-    constructor(sdp:string,endpoint:any,capabilities:any) {
+    constructor(endpoint:any,capabilities:any) {
         super()
         this.routerId = uuid.v4()
         this.endpoint = endpoint
         this.capabilities = capabilities
-    }
-
-
-    /**
-     * @returns {string}
-     * @memberof Router
-     */
-    public getId(): string {
-        return this.routerId
     }
 
     /**
@@ -100,7 +91,7 @@ class Router extends EventEmitter {
         })
         const outgoing = transport.publish(this.incoming)
         outgoing.transport = transport
-        this.outgoings.push(outgoing)
+        this.outgoings.set(outgoing.getId(), outgoing)
         answer.addStream(outgoing.getStreamInfo())
 
         return {
@@ -108,4 +99,35 @@ class Router extends EventEmitter {
             outgoing: outgoing
         }
     }
+
+    public stopOutgoing(streamId:string) {
+
+        const outgoing = this.outgoings.get(streamId)
+
+        if (outgoing.transport) {
+            outgoing.transport.stop()
+        }
+
+        this.outgoings.delete(streamId)
+        
+    }
+
+    public stop() {
+
+        if (this.incoming) {
+            this.incoming.transport.stop()
+        }
+
+        for (let outgoing of this.outgoings.values()) {
+            if(outgoing.transport) {
+                outgoing.transport.stop()
+            }
+        }
+
+        this.incoming = null
+        this.outgoings = null
+    }
 }
+
+
+export default MediaRouter
