@@ -110,7 +110,6 @@ const setupSocketServer = async (server: Server) => {
                 cmd.accept({ })
                 return
             }
-
             
             if (cmd.name === 'leave') {
                 socket.disconnect(true)
@@ -172,6 +171,7 @@ const setupSocketServer = async (server: Server) => {
         })
         
         socket.on('disconnect', async () => {
+            
             for (let stream of peer.getIncomingStreams().values()) {
                 let data = {
                     peer: peer.dumps(),
