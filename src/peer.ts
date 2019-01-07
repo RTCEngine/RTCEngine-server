@@ -75,6 +75,7 @@ class Peer extends EventEmitter {
         const offer = SDPInfo.process(sdp)
         const endpoint = this.room.getEndpoint()
         const transport = endpoint.createTransport(offer)
+        transport.setRemoteProperties(offer)
 
         const answer = offer.answer({
             dtls: transport.getLocalDTLSInfo(),
@@ -115,6 +116,7 @@ class Peer extends EventEmitter {
         const offer = SDPInfo.process(sdp)
         const endpoint = this.room.getEndpoint()
         const transport = endpoint.createTransport(offer)
+        transport.setRemoteProperties(offer)
 
         const answer = offer.answer({
             dtls: transport.getLocalDTLSInfo(),
@@ -122,6 +124,8 @@ class Peer extends EventEmitter {
             candidates: endpoint.getLocalCandidates(),
             capabilities: config.media.capabilities
         })
+        
+        transport.setLocalProperties(answer)
 
         const incoming = this.room.getIncomingStream(streamId)
 
