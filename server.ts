@@ -8,8 +8,8 @@ dotenv.config()
 
 import Server from './src/server'
 
-MediaServer.enableDebug(true);
-MediaServer.enableUltraDebug(true);
+// MediaServer.enableDebug(true);
+// MediaServer.enableUltraDebug(true);
 
 
 const server = new Server({})

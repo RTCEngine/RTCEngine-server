@@ -75,6 +75,7 @@ class Peer extends EventEmitter {
         const offer = SDPInfo.process(sdp)
         const endpoint = this.room.getEndpoint()
         const transport = endpoint.createTransport(offer)
+        transport.setRemoteProperties(offer)
 
         const answer = offer.answer({
             dtls: transport.getLocalDTLSInfo(),
@@ -86,7 +87,8 @@ class Peer extends EventEmitter {
         transport.setLocalProperties(answer)
         const streamInfo = offer.getStream(streamId)
         const incoming = transport.createIncomingStream(streamInfo)
-        incoming.transport = transport
+
+        incoming.assoTransport = transport
         this.incomingStreams.set(incoming.getId(), incoming)
 
         // todo set bitrate
@@ -103,8 +105,8 @@ class Peer extends EventEmitter {
             return
         }
 
-        if (incoming.transport) {
-            incoming.transport.stop()
+        if (incoming.assoTransport) {
+            incoming.assoTransport.stop()
         }
         this.incomingStreams.delete(streamId)
         return
@@ -115,6 +117,7 @@ class Peer extends EventEmitter {
         const offer = SDPInfo.process(sdp)
         const endpoint = this.room.getEndpoint()
         const transport = endpoint.createTransport(offer)
+        transport.setRemoteProperties(offer)
 
         const answer = offer.answer({
             dtls: transport.getLocalDTLSInfo(),
@@ -123,11 +126,13 @@ class Peer extends EventEmitter {
             capabilities: config.media.capabilities
         })
 
+        transport.setLocalProperties(answer)
+
         const incoming = this.room.getIncomingStream(streamId)
 
         const outgoing = transport.createOutgoingStream(incoming.getStreamInfo())
         outgoing.attachTo(incoming)
-        outgoing.transport = transport
+        outgoing.assoTransport = transport
 
         this.outgoingStreams.set(outgoing.getId(), outgoing)
 
@@ -146,8 +151,8 @@ class Peer extends EventEmitter {
             return
         }
 
-        if (outgoing.transport) {
-            outgoing.transport.stop()
+        if (outgoing.assoTransport) {
+            outgoing.assoTransport.stop()
         }
         this.outgoingStreams.delete(streamId)
         return
@@ -165,11 +170,11 @@ class Peer extends EventEmitter {
 
 
         for (let stream of this.incomingStreams.values()) {
-            stream.transport.stop()
+            stream.assoTransport.stop()
         }
 
         for (let stream of this.outgoingStreams.values()) {
-            stream.transport.stop()
+            stream.assoTransport.stop()
         }
 
         this.incomingStreams.clear()
