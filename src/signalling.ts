@@ -18,8 +18,7 @@ import Server from './server'
 import Room from './room'
 import Peer from './peer'
 import config from './config'
-
-
+import * as request from './request'
 
 const socketServer = socketio({
     pingInterval: 10000,
@@ -68,7 +67,7 @@ const setupSocketServer = async (server: Server) => {
                 room.setBitrate(streamId, bitrate)
                 room.setAttribute(streamId, attributes)
 
-                const { answer, } = peer.addIncoming(sdp, streamId)
+                const { answer, } = await peer.addIncoming(sdp, streamId)
 
                 cmd.accept({sdp:answer})
                 // broadcast this stream 
@@ -83,7 +82,7 @@ const setupSocketServer = async (server: Server) => {
             if (cmd.name === 'unpublish') {
 
                 const streamId = cmd.data.stream.streamId
-                peer.removeIncoming(streamId)
+                await peer.removeIncoming(streamId)
                 cmd.accept({})
                 // broadcast this unpublish
                 let data = {
@@ -98,7 +97,7 @@ const setupSocketServer = async (server: Server) => {
                 const sdp = cmd.data.sdp
                 const streamId = cmd.data.stream.streamId
 
-                const {answer,} = peer.addOutgoing(sdp, streamId)
+                const {answer,} = await peer.addOutgoing(sdp, streamId)
 
                 cmd.accept({ sdp: answer, stream: room.getStreamData(streamId)})
                 return
@@ -106,14 +105,14 @@ const setupSocketServer = async (server: Server) => {
 
             if (cmd.name === 'unsubscribe') {
                 const streamId = cmd.data.stream.streamId
-                peer.removeOutgoing(streamId)
+                await peer.removeOutgoing(streamId)
                 cmd.accept({ })
                 return
             }
             
             if (cmd.name === 'leave') {
                 socket.disconnect(true)
-                peer.close()
+                await peer.close()
             }
 
             if (cmd.name === 'message') {
@@ -133,30 +132,30 @@ const setupSocketServer = async (server: Server) => {
                     return
                 }
 
-                let outgoingStream
-                for (let stream of peer.getOutgoingStreams().values()) {
-                    if (stream.getId() === streamId) {
-                        outgoingStream = stream
-                    }
-                }
+                // let outgoingStream
+                // for (let stream of peer.getOutgoingStreams().values()) {
+                //     if (stream.getId() === streamId) {
+                //         outgoingStream = stream
+                //     }
+                // }
 
-                if (!outgoingStream) {
-                    return
-                }
+                // if (!outgoingStream) {
+                //     return
+                // }
 
-                if ('video' in data) {
-                    let muting = cmd.data.muting
-                    for (let track of outgoingStream.getVideoTracks()) {
-                        track.mute(muting)
-                    }
-                }
+                // if ('video' in data) {
+                //     let muting = cmd.data.muting
+                //     for (let track of outgoingStream.getVideoTracks()) {
+                //         track.mute(muting)
+                //     }
+                // }
 
-                if ('audio' in data) {
-                    let muting = cmd.data.muting
-                    for (let track of outgoingStream.getAudioTracks()) {
-                        track.mute(muting)
-                    }
-                }    
+                // if ('audio' in data) {
+                //     let muting = cmd.data.muting
+                //     for (let track of outgoingStream.getAudioTracks()) {
+                //         track.mute(muting)
+                //     }
+                // }    
             }
 
             if (cmd.name === 'message') {
@@ -175,12 +174,12 @@ const setupSocketServer = async (server: Server) => {
             for (let stream of peer.getIncomingStreams().values()) {
                 let data = {
                     peer: peer.dumps(),
-                    stream: room.getStreamData(stream.getId())
+                    stream: room.getStreamData(stream)
                 }
                 tm.broadcast(roomId, 'streamunpublished', data)
             }
             tm.broadcast(roomId, 'peerremoved', {peer: peer.dumps()})
-            peer.close()
+            await peer.close()
             socket.leaveAll()
         })
     })

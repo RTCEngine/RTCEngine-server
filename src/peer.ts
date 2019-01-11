@@ -5,6 +5,8 @@ import Server from './server'
 import config from './config'
 import Logger from './logger'
 
+import * as request from './request'
+
 const MediaServer = require('medooze-media-server')
 const SemanticSDP = require('semantic-sdp')
 
@@ -70,95 +72,55 @@ class Peer extends EventEmitter {
         return this.outgoingStreams
     }
 
-    public addIncoming(sdp: string, streamId:string, data?: any) {
+    public async addIncoming(sdp: string, streamId:string, data?: any) {
 
-        const offer = SDPInfo.process(sdp)
-        const endpoint = this.room.getEndpoint()
-        const transport = endpoint.createTransport(offer)
-        transport.setRemoteProperties(offer)
+        const ret = await request.publish(streamId, sdp)
+        this.incomingStreams.set(streamId, ret.streamId)
 
-        const answer = offer.answer({
-            dtls: transport.getLocalDTLSInfo(),
-            ice: transport.getLocalICEInfo(),
-            candidates: endpoint.getLocalCandidates(),
-            capabilities: config.media.capabilities
-        })
-
-        transport.setLocalProperties(answer)
-        const streamInfo = offer.getStream(streamId)
-        const incoming = transport.createIncomingStream(streamInfo)
-
-        incoming.assoTransport = transport
-        this.incomingStreams.set(incoming.getId(), incoming)
-
-        // todo set bitrate
         return { 
-            incoming: incoming,
-            answer: answer.toString()
+            streamId: ret.streamId,
+            answer: ret.sdp
         }
     }
 
-    public removeIncoming(streamId:string) {
+    public async removeIncoming(streamId:string) {
 
         const incoming = this.incomingStreams.get(streamId)
         if (!incoming){
             return
         }
 
-        if (incoming.assoTransport) {
-            incoming.assoTransport.stop()
-        }
+        await request.unpublish(streamId)
         this.incomingStreams.delete(streamId)
+
         return
     }
+    
+    public async addOutgoing(sdp: string, streamId:string, data?: any) {
 
-    public addOutgoing(sdp: string, streamId:string, data?: any) {
-
-        const offer = SDPInfo.process(sdp)
-        const endpoint = this.room.getEndpoint()
-        const transport = endpoint.createTransport(offer)
-        transport.setRemoteProperties(offer)
-
-        const answer = offer.answer({
-            dtls: transport.getLocalDTLSInfo(),
-            ice: transport.getLocalICEInfo(),
-            candidates: endpoint.getLocalCandidates(),
-            capabilities: config.media.capabilities
-        })
-
-        transport.setLocalProperties(answer)
-
-        const incoming = this.room.getIncomingStream(streamId)
-
-        const outgoing = transport.createOutgoingStream(incoming.getStreamInfo())
-        outgoing.attachTo(incoming)
-        outgoing.assoTransport = transport
-
-        this.outgoingStreams.set(outgoing.getId(), outgoing)
-
-        answer.addStream(outgoing.getStreamInfo())
+        const ret = await request.play(streamId, sdp)
+        this.outgoingStreams.set(ret.outgoingId, streamId)
 
         return { 
-            outgoing: outgoing,
-            answer: answer.toString()
+            streamId: ret.outgoingId,
+            answer: ret.sdp
         }
     }
 
-    public removeOutgoing(streamId:string) {
+    public async removeOutgoing(outgoingId:string) {
 
-        const outgoing = this.outgoingStreams.get(streamId)
-        if (!outgoing){
+        const incomingStreamId = this.outgoingStreams.get(outgoingId)
+        if (!incomingStreamId){
             return
         }
 
-        if (outgoing.assoTransport) {
-            outgoing.assoTransport.stop()
-        }
-        this.outgoingStreams.delete(streamId)
+        await request.unplay(incomingStreamId, outgoingId)
+
+        this.outgoingStreams.delete(outgoingId)
         return
     }
 
-    public close() {
+    public async close() {
 
         log.debug('peer close')
 
@@ -168,13 +130,13 @@ class Peer extends EventEmitter {
 
         this.closed = true
 
-
-        for (let stream of this.incomingStreams.values()) {
-            stream.assoTransport.stop()
+        for (let outgoingId of this.outgoingStreams.keys()) {
+            let incomingId = this.outgoingStreams.get(outgoingId)
+            await request.unplay(incomingId, outgoingId)
         }
 
-        for (let stream of this.outgoingStreams.values()) {
-            stream.assoTransport.stop()
+        for (let stream of this.incomingStreams.keys()) {
+            await request.unpublish(stream)
         }
 
         this.incomingStreams.clear()
@@ -188,9 +150,9 @@ class Peer extends EventEmitter {
         const incomingStreams = Array.from(this.getIncomingStreams().values())
         const streams = incomingStreams.map((stream) => {
             return {
-                streamId:stream.getId(),
-                bitrate: this.room.getBitrate(stream.getId()),
-                attributes: this.room.getAttribute(stream.getId())
+                streamId:stream,
+                bitrate: this.room.getBitrate(stream),
+                attributes: this.room.getAttribute(stream)
             }
         })
 

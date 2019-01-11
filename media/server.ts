@@ -23,7 +23,7 @@ export default class Server extends EventEmitter {
     private app: express.Application
     private httpServer: http.Server
 
-    constructor(params: any) {
+    constructor(params?: any) {
         //create expressjs application
         super()
 

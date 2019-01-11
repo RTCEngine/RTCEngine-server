@@ -55,6 +55,8 @@ class MediaRouter extends EventEmitter {
         
         const offer = SDPInfo.process(sdp)
         const transport = this.endpoint.createTransport(offer)
+        transport.setRemoteProperties(offer)
+
         const answer = offer.answer({
             dtls: transport.getLocalDTLSInfo(),
             ice: transport.getLocalICEInfo(),
@@ -64,7 +66,7 @@ class MediaRouter extends EventEmitter {
         transport.setLocalProperties(answer)
         const streamInfo = offer.getFirstStream()
         const incoming = transport.createIncomingStream(streamInfo)
-        incoming.transport = transport 
+        incoming.assoTransport = transport 
         this.incoming = incoming
 
         return {
@@ -83,14 +85,17 @@ class MediaRouter extends EventEmitter {
 
         const offer = SDPInfo.process(sdp)
         const transport = this.endpoint.createTransport(offer)
+        transport.setRemoteProperties(offer)
+
         const answer = offer.answer({
             dtls: transport.getLocalDTLSInfo(),
             ice: transport.getLocalICEInfo(),
             candidates: this.endpoint.getLocalCandidates(),
             capabilities: this.capabilities
         })
+        transport.setLocalProperties(answer)
         const outgoing = transport.publish(this.incoming)
-        outgoing.transport = transport
+        outgoing.assoTransport = transport
         this.outgoings.set(outgoing.getId(), outgoing)
         answer.addStream(outgoing.getStreamInfo())
 
@@ -105,7 +110,7 @@ class MediaRouter extends EventEmitter {
         const outgoing = this.outgoings.get(streamId)
 
         if (outgoing.transport) {
-            outgoing.transport.stop()
+            outgoing.assoTransport.stop()
         }
 
         this.outgoings.delete(streamId)
@@ -115,17 +120,17 @@ class MediaRouter extends EventEmitter {
     public stop() {
 
         if (this.incoming) {
-            this.incoming.transport.stop()
+            this.incoming.assoTransport.stop()
         }
-
+        
         for (let outgoing of this.outgoings.values()) {
-            if(outgoing.transport) {
-                outgoing.transport.stop()
+            if(outgoing.assoTransport) {
+                outgoing.assoTransport.stop()
             }
         }
-
-        this.incoming = null
         this.outgoings = null
+        this.incoming = null
+       
     }
 }
 
