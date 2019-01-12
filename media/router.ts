@@ -6,15 +6,6 @@ const MediaServer = require('medooze-media-server')
 const SemanticSDP = require('semantic-sdp')
 
 const SDPInfo = SemanticSDP.SDPInfo
-const MediaInfo = SemanticSDP.MediaInfo
-const CandidateInfo = SemanticSDP.CandidateInfo
-const DTLSInfo = SemanticSDP.DTLSInfo
-const ICEInfo = SemanticSDP.ICEInfo
-const StreamInfo = SemanticSDP.StreamInfo
-const TrackInfo = SemanticSDP.TrackInfo
-const Direction = SemanticSDP.Direction
-const CodecInfo = SemanticSDP.CodecInfo
-
 /**
  *
  *
@@ -37,6 +28,10 @@ class MediaRouter extends EventEmitter {
         this.routerId = uuid.v4()
         this.endpoint = endpoint
         this.capabilities = capabilities
+    }
+
+    public getId() {
+        return this.routerId
     }
 
     /**
@@ -83,7 +78,7 @@ class MediaRouter extends EventEmitter {
      * @returns
      * @memberof Router
      */
-    public createOutgoing(sdp:string) {
+    public createOutgoing(sdp:string, outgoingId?:string) {
 
         const offer = SDPInfo.process(sdp)
         const transport = this.endpoint.createTransport(offer)
@@ -96,7 +91,15 @@ class MediaRouter extends EventEmitter {
             capabilities: this.capabilities
         })
         transport.setLocalProperties(answer)
-        const outgoing = transport.publish(this.incoming)
+
+        const outgoing = transport.createOutgoingStream({
+            id: outgoingId,
+			audio: this.incoming.getAudioTracks().length,
+			video: this.incoming.getVideoTracks().length
+        })
+
+        outgoing.attachTo(this.incoming)
+        
         outgoing.assoTransport = transport
         this.outgoings.set(outgoing.getId(), outgoing)
         answer.addStream(outgoing.getStreamInfo())

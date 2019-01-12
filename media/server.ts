@@ -18,7 +18,7 @@ import Router from './router'
  * @class Server
  * @extends {EventEmitter}
  */
-export default class Server extends EventEmitter {
+export default class MediaServer extends EventEmitter {
 
     private app: express.Application
     private httpServer: http.Server

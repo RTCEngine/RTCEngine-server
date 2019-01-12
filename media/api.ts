@@ -89,11 +89,11 @@ apiRouter.post('/api/play', async (req: Request, res:Response) => {
 
     const sdp = req.body.sdp
     const streamId = req.body.streamId
+    const outgoingId = req.body.outgoingId
 
     const router = routers.get(streamId)
 
-    const {answer, outgoing} = router.createOutgoing(sdp)
-
+    const {answer, outgoing} = router.createOutgoing(sdp, outgoingId)
 
     res.json({
         s: 10000,
@@ -123,17 +123,19 @@ apiRouter.post('/api/unplay', async (req: Request, res:Response) => {
     })
 })
 
-apiRouter.post('/api/pull', async (req: Request, res:Response) => {
 
-    console.dir(req.body)
+apiRouter.get('/api/offer', async (req: Request, res:Response) => {
+
+    const remoteOffer = endpoint.createOffer(capabilities)
 
     res.json({
         s: 10000,
-        d: { },
+        d: {
+            sdp: remoteOffer.toString()
+        },
         e: ''
     })
 })
-
 
 apiRouter.options('/api/config', cors())
 apiRouter.post('/api/config', async (req: Request, res:Response) => {
