@@ -19,6 +19,7 @@ import Room from './room'
 import Peer from './peer'
 import config from './config'
 import * as request from './request'
+import Router from './router'
 
 const socketServer = socketio({
     pingInterval: 10000,
@@ -34,14 +35,13 @@ const setupSocketServer = async (server: Server) => {
 
         let token = socket.handshake.query.token
 
-        let data = jwt.decode(token, null, true)
+        let tokenInfo = jwt.decode(token, null, true)
 
-        const peerId = data.user
-        const roomId = data.room
+        const roomId = tokenInfo.room
 
         const room = server.getRoom(roomId)
-        const peers = room.dumps()
-        const peer = room.newPeer(peerId)
+
+        const routers: Map<string,Router> = new Map()
 
         const tm = new TransactionManager(socket)
 
@@ -49,75 +49,72 @@ const setupSocketServer = async (server: Server) => {
 
             console.dir(cmd)
 
-            if (cmd.name === 'join') {
-                socket.join(roomId)
-                cmd.accept({room: peers})
-                tm.broadcast(roomId, 'peerconnected', {peer:peer.dumps()})
-                return
-            }
-
-
-            if (cmd.name === 'publish') {
-
-                const sdp = cmd.data.sdp
-                const streamId = cmd.data.stream.streamId
-                const bitrate = cmd.data.stream.bitrate
-                const attributes = cmd.data.stream.attributes
-
-                room.setBitrate(streamId, bitrate)
-                room.setAttribute(streamId, attributes)
-
-                const { answer, } = await peer.addIncoming(sdp, streamId)
-
-                cmd.accept({sdp:answer})
-                // broadcast this stream 
-                let data = {
-                    peer: peer.dumps(),
-                    stream: room.getStreamData(streamId)
+            switch(cmd.name) {
+                case 'join': {
+                    socket.join(roomId)
+                    cmd.accept({room: room.dumps()})
+                    break
                 }
-                tm.broadcast(roomId, 'streampublished', data)
-                return
-            }
+                case 'publish': {
+                    const sdp = cmd.data.sdp
+                    const publisherId = cmd.data.stream.publisherId
+                    const streamData = cmd.data.stream.data
 
-            if (cmd.name === 'unpublish') {
+                    const router = room.newRouter()
+                    routers.set(router.getId(), router)
+                    router.once('close', () => {
+                        routers.delete(router.getId())
+                    })
 
-                const streamId = cmd.data.stream.streamId
-                await peer.removeIncoming(streamId)
-                cmd.accept({})
-                // broadcast this unpublish
-                let data = {
-                    peer: peer.dumps(),
-                    stream: room.getStreamData(streamId)
+                    const { answer } = await router.createPublisher(publisherId, sdp, streamData)
+    
+                    cmd.accept({sdp:answer})
+                    // broadcast this stream 
+                    tm.broadcast(roomId, 'streampublished', {
+                        stream: router.dumps()
+                    })
+                    break
                 }
-                tm.broadcast(roomId, 'streamunpublished', data)
-                return
-            }
+                case 'unpublish': {
+                    const publisherId = cmd.data.stream.publisherId
+                    const router = room.getRouterByPublisher(publisherId)
+    
+                    await router.stopPublisher()
+                    cmd.accept({})
+    
+                    // broadcast this unpublish
+                    tm.broadcast(roomId, 'streamunpublished', {
+                        stream: router.dumps()
+                    })
+                    break
+                }
+                case 'subscribe': {
+                    const sdp = cmd.data.sdp
+                    const publisherId = cmd.data.stream.publisherId
+    
+                    const router = room.getRouterByPublisher(publisherId)
+    
+                    const { answer,subscriberId } = await router.createSubscriber(sdp)
 
-            if (cmd.name === 'subscribe') {
-                const sdp = cmd.data.sdp
-                const streamId = cmd.data.stream.streamId
-
-                const {answer,} = await peer.addOutgoing(sdp, streamId)
-
-                cmd.accept({ sdp: answer, stream: room.getStreamData(streamId)})
-                return
-            }
-
-            if (cmd.name === 'unsubscribe') {
-                const streamId = cmd.data.stream.streamId
-                await peer.removeOutgoing(streamId)
-                cmd.accept({ })
-                return
-            }
-            
-            if (cmd.name === 'leave') {
-                socket.disconnect(true)
-                await peer.close()
-            }
-
-            if (cmd.name === 'message') {
-                cmd.accept()
-                tm.broadcast(roomId,'message', cmd.data)
+                    cmd.accept({ 
+                        sdp: answer, 
+                        stream: {
+                            subscriberId: subscriberId, 
+                            data: router.getData()
+                        }
+                    })
+                    break  
+                }
+                case 'unsubscribe': {
+                    const publisherId = cmd.data.stream.publisherId
+                    const subscriberId = cmd.data.stream.subscriberId
+    
+                    const router = room.getRouterByPublisher(publisherId)
+    
+                    router.stopSubscriber(subscriberId)
+                    cmd.accept({})
+                    break
+                }
             }
             
         })
@@ -127,10 +124,10 @@ const setupSocketServer = async (server: Server) => {
             if (cmd.name === 'configure') {
 
                 const streamId = cmd.data.streamId
-                if (peer.getIncomingStreams().get(streamId)) {
-                    tm.broadcast(roomId, 'configure', cmd.data)
-                    return
-                }
+                // if (peer.getIncomingStreams().get(streamId)) {
+                //     tm.broadcast(roomId, 'configure', cmd.data)
+                //     return
+                // }
 
                 // let outgoingStream
                 // for (let stream of peer.getOutgoingStreams().values()) {
@@ -165,21 +162,21 @@ const setupSocketServer = async (server: Server) => {
 
             if (cmd.name === 'leave') {
                 socket.disconnect(true)
-                peer.close()
             }
         })
         
         socket.on('disconnect', async () => {
-            
-            for (let stream of peer.getIncomingStreams().values()) {
-                let data = {
-                    peer: peer.dumps(),
-                    stream: room.getStreamData(stream)
-                }
-                tm.broadcast(roomId, 'streamunpublished', data)
+
+            for (let router of routers.values()) {
+                tm.broadcast(roomId, 'streamunpublished', {
+                    stream: router.dumps()
+                })
             }
-            tm.broadcast(roomId, 'peerremoved', {peer: peer.dumps()})
-            await peer.close()
+
+            for (let router of routers.values()) {
+                await router.stopPublisher()
+            }
+
             socket.leaveAll()
         })
     })

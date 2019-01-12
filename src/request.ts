@@ -6,13 +6,15 @@ import fetch from 'node-fetch'
 const baseURL = 'http://localhost:6000'
 
 
-const publish = async (streamId: string, sdp: string) => {
+const publish = async (streamId: string, sdp: string, data?:any) => {
 
     let res = await fetch(baseURL + '/api/publish', {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            sdp: sdp
+            sdp: sdp,
+            streamId: streamId,
+            data: data 
         })
     })
 
@@ -26,7 +28,6 @@ const publish = async (streamId: string, sdp: string) => {
 const unpublish = async (streamId: string) => {
 
     // streamId
-
     let res = await fetch(baseURL + '/api/unpublish', {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },
@@ -45,7 +46,7 @@ const play = async (streamId: string, sdp: string) => {
 
     // const sdp = req.body.sdp
     // const streamId = req.body.streamId
-
+    
     let res = await fetch(baseURL + '/api/play', {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },

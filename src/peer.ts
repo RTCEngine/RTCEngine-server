@@ -33,13 +33,15 @@ class Peer extends EventEmitter {
 
     private peerId: string
     private roomId: string
-    private closed: boolean = false
+    
     private room: Room
 
     private server: Server
 
     private incomingStreams: Map<string, any> = new Map()
     private outgoingStreams: Map<string, any> = new Map()
+
+    public closed: boolean = false
 
     /**
      *Creates an instance of Peer.
@@ -130,14 +132,16 @@ class Peer extends EventEmitter {
 
         this.closed = true
 
-        for (let outgoingId of this.outgoingStreams.keys()) {
-            let incomingId = this.outgoingStreams.get(outgoingId)
-            await request.unplay(incomingId, outgoingId)
-        }
-
         for (let stream of this.incomingStreams.keys()) {
             await request.unpublish(stream)
         }
+
+        // we can only unpublish incoming 
+
+        // for (let outgoingId of this.outgoingStreams.keys()) {
+        //     let incomingId = this.outgoingStreams.get(outgoingId)
+        //     await request.unplay(incomingId, outgoingId)
+        // }
 
         this.incomingStreams.clear()
         this.outgoingStreams.clear()

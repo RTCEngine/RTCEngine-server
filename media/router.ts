@@ -21,6 +21,8 @@ const CodecInfo = SemanticSDP.CodecInfo
  * @class Router
  * @extends {EventEmitter}
  */
+
+ 
 class MediaRouter extends EventEmitter {
 
     private routerId: string
@@ -109,12 +111,11 @@ class MediaRouter extends EventEmitter {
 
         const outgoing = this.outgoings.get(streamId)
 
-        if (outgoing.transport) {
+        if (outgoing && outgoing.assoTransport) {
             outgoing.assoTransport.stop()
         }
 
         this.outgoings.delete(streamId)
-        
     }
 
     public stop() {
