@@ -23,10 +23,10 @@ import { EventEmitter } from 'events'
  *
  *
  * @export
- * @class Server
+ * @class SignallingServer
  * @extends {EventEmitter}
  */
-export default class Server extends EventEmitter {
+export default class SignallingServer extends EventEmitter {
 
     private app: express.Application
     private httpServer: http.Server
@@ -34,12 +34,11 @@ export default class Server extends EventEmitter {
     private rooms: Map<string, Room> = new Map()
     private peers: Set<Peer> = new Set()
 
-    constructor(params: any) {
+    constructor(params?: any) {
         //create expressjs application
         super()
 
         this.app = express()
-
 
         //configure application
         this.config()
@@ -122,9 +121,11 @@ export default class Server extends EventEmitter {
     }
 
     public dumps() {
-        let info = []
+        let info = {
+            rooms:[]
+        }
         for (const room of this.rooms.values()) {
-            info.push(room.dumps)
+            info.rooms.push(room.dumps())
         }
         return info
     }

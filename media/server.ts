@@ -9,23 +9,34 @@ import methodOverride = require('method-override')
 import { EventEmitter } from 'events'
 
 import apiRouter from './api'
-import Router from './router'
+import  config  from './config';
 
 /**
  *
  *
  * @export
- * @class Server
+ * @class MediaServer
  * @extends {EventEmitter}
  */
 export default class MediaServer extends EventEmitter {
 
     private app: express.Application
     private httpServer: http.Server
+    private params: any
 
     constructor(params?: any) {
         //create expressjs application
         super()
+
+        this.params = params
+
+        if (params.endpoint) {
+            config.endpoint = params.endpoint
+        }
+
+        if (params.capabilities){
+            config.capabilities = params.capabilities
+        }
 
         this.app = express()
 
@@ -44,9 +55,7 @@ export default class MediaServer extends EventEmitter {
      * @memberof Server
      */
     public start(port: number, hostname: string, callback?: Function) {
-
         this.httpServer = this.app.listen(port, hostname, callback)
-
     }
 
     private config() {
