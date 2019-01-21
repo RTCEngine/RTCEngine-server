@@ -15,8 +15,7 @@ export default class Room extends EventEmitter {
 
     private roomId: string
     private closed: boolean
-
-    private peers: Map<string, Peer>
+    
     private routers: Map<string, Router>
 
     private server:Server
@@ -93,10 +92,6 @@ export default class Room extends EventEmitter {
         }
 
         this.closed = true
-
-        for (let peer of this.peers.values()) {
-            peer.close()
-        }
 
         for (let router of this.routers.values()) {
             router.close()

@@ -14,11 +14,11 @@ const media = new MediaServer({
 const signalling = new SignallingServer()
 
 signalling.start(3888, '0.0.0.0', () => {
-    console.log('signalling start')
+    console.log('signalling server start on', 3888)
 })
 
 media.start(6000, '0.0.0.0', () => {
-    console.log('media start ')
+    console.log('media server start on', 6000)
 })
 
 
