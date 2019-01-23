@@ -1,7 +1,6 @@
 import * as socketio from 'socket.io'
 import * as jwt from 'jwt-simple'
 
-const TransactionManager = require('socketio-transaction')
 const SemanticSDP = require('semantic-sdp')
 
 const SDPInfo = SemanticSDP.SDPInfo
@@ -42,88 +41,85 @@ const setupSocketServer = async (server: Server) => {
         const room = server.getRoom(roomId)
 
         const routers: Map<string,Router> = new Map()
+        
+        socket.on('join', async (data:any, ack:Function) => {
 
-        const tm = new TransactionManager(socket)
+            socket.join(roomId)
 
-        tm.on('cmd', async (cmd) => {
-
-            console.dir(cmd)
-
-            switch(cmd.name) {
-                case 'join': {
-                    socket.join(roomId)
-                    cmd.accept({room: room.dumps()})
-                    break
-                }
-                case 'publish': {
-                    const sdp = cmd.data.sdp
-                    const publisherId = cmd.data.stream.publisherId
-                    const streamData = cmd.data.stream.data
-
-                    const router = room.newRouter()
-                    routers.set(router.getId(), router)
-                    router.once('close', () => {
-                        routers.delete(router.getId())
-                    })
-
-                    const { answer } = await router.createPublisher(publisherId, sdp, streamData)
-    
-                    cmd.accept({sdp:answer})
-                    // broadcast this stream 
-                    tm.broadcast(roomId, 'streampublished', {
-                        stream: router.dumps()
-                    })
-                    break
-                }
-                case 'unpublish': {
-                    const publisherId = cmd.data.stream.publisherId
-                    const router = room.getRouterByPublisher(publisherId)
-    
-                    await router.stopPublisher()
-                    cmd.accept({})
-    
-                    // broadcast this unpublish
-                    tm.broadcast(roomId, 'streamunpublished', {
-                        stream: router.dumps()
-                    })
-                    break
-                }
-                case 'subscribe': {
-                    const sdp = cmd.data.sdp
-                    const publisherId = cmd.data.stream.publisherId
-    
-                    const router = room.getRouterByPublisher(publisherId)
-    
-                    const { answer,subscriberId } = await router.createSubscriber(sdp)
-
-                    cmd.accept({ 
-                        sdp: answer, 
-                        stream: {
-                            subscriberId: subscriberId, 
-                            data: router.getData()
-                        }
-                    })
-                    break  
-                }
-                case 'unsubscribe': {
-                    const publisherId = cmd.data.stream.publisherId
-                    const subscriberId = cmd.data.stream.subscriberId
-    
-                    const router = room.getRouterByPublisher(publisherId)
-    
-                    router.stopSubscriber(subscriberId)
-                    cmd.accept({})
-                    break
-                }
-            }
-            
+            ack({
+                room: room.dumps()
+            })
         })
 
-        tm.on('event', async (cmd) => {
+        socket.on('publish', async (data:any, ack:Function) => {
 
-            if (cmd.name === 'configure') {
+            const sdp = data.sdp
+            const publisherId = data.stream.publisherId
+            const streamData = data.stream.data
 
-                const streamId = cmd.data.streamId
+            const router = room.newRouter()
+            routers.set(router.getId(), router)
+            router.once('close', () => {
+                routers.delete(router.getId())
+            })
+
+            const { answer } = await router.createPublisher(publisherId, sdp, streamData)
+
+            ack({sdp:answer})
+            
+            socket.to(roomId).emit('streampublished', {
+                stream: router.dumps()
+            })
+        })
+
+
+        socket.on('unpublish', async (data:any, ack:Function) => {
+
+            const publisherId = data.stream.publisherId
+            const router = room.getRouterByPublisher(publisherId)
+
+            await router.stopPublisher()
+
+            ack({})
+
+            socket.to(roomId).emit('streamunpublished', {
+                stream: router.dumps()
+            })
+        })
+
+        socket.on('subscribe', async (data:any, ack:Function) => {
+
+            const sdp = data.sdp
+            const publisherId = data.stream.publisherId
+
+            const router = room.getRouterByPublisher(publisherId)
+
+            const { answer,subscriberId } = await router.createSubscriber(sdp)
+
+            ack({
+                sdp: answer, 
+                stream: {
+                    subscriberId: subscriberId, 
+                    data: router.getData()
+                }
+            })
+        
+        })
+
+        socket.on('unsubscribe', async (data:any, ack:Function) => {
+
+            const publisherId = data.stream.publisherId
+            const subscriberId = data.stream.subscriberId
+
+            const router = room.getRouterByPublisher(publisherId)
+
+            router.stopSubscriber(subscriberId)
+
+            ack({})
+        })
+
+        socket.on('configure', async (data:any, ack:Function) => {
+
                 // if (peer.getIncomingStreams().get(streamId)) {
                 //     tm.broadcast(roomId, 'configure', cmd.data)
                 //     return
@@ -153,22 +149,21 @@ const setupSocketServer = async (server: Server) => {
                 //         track.mute(muting)
                 //     }
                 // }    
-            }
-
-            if (cmd.name === 'message') {
-                tm.broadcast(roomId, 'message', cmd.data)
-                return
-            }
-
-            if (cmd.name === 'leave') {
-                socket.disconnect(true)
-            }
         })
-        
+
+        socket.on('message', async (data:any, ack:Function) => {
+            ack({})
+            socket.to(roomId).emit('message', data)
+        })
+
+        socket.on('leave', async (data:any, ack:Function) => {
+            socket.disconnect(true)
+        })
+
         socket.on('disconnect', async () => {
 
             for (let router of routers.values()) {
-                tm.broadcast(roomId, 'streamunpublished', {
+                socket.to(roomId).emit('streamunpublished', {
                     stream: router.dumps()
                 })
             }
