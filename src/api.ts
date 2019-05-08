@@ -42,7 +42,6 @@ apiRouter.post('/api/generateToken', async (req: Request, res: Response) => {
 
     let token: string = jwt.encode(data, secret)
 
-
     res.json({
         s: 10000,
         d: { token: token },

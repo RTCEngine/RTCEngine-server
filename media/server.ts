@@ -62,6 +62,8 @@ export default class MediaServer extends EventEmitter {
 
         this.app.use(cors())
 
+        this.app.enable('trust proxy')
+
         //mount json form parser
         this.app.use(bodyParser.json())
 

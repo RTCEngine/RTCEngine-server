@@ -119,36 +119,7 @@ const setupSocketServer = async (server: Server) => {
         })
 
         socket.on('configure', async (data:any, ack:Function) => {
-
-                // if (peer.getIncomingStreams().get(streamId)) {
-                //     tm.broadcast(roomId, 'configure', cmd.data)
-                //     return
-                // }
-
-                // let outgoingStream
-                // for (let stream of peer.getOutgoingStreams().values()) {
-                //     if (stream.getId() === streamId) {
-                //         outgoingStream = stream
-                //     }
-                // }
-
-                // if (!outgoingStream) {
-                //     return
-                // }
-
-                // if ('video' in data) {
-                //     let muting = cmd.data.muting
-                //     for (let track of outgoingStream.getVideoTracks()) {
-                //         track.mute(muting)
-                //     }
-                // }
-
-                // if ('audio' in data) {
-                //     let muting = cmd.data.muting
-                //     for (let track of outgoingStream.getAudioTracks()) {
-                //         track.mute(muting)
-                //     }
-                // }    
+            
         })
 
         socket.on('message', async (data:any, ack:Function) => {
