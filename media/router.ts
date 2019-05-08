@@ -23,9 +23,9 @@ class MediaRouter extends EventEmitter {
     private outgoings: Map<string,any> = new Map()
 
 
-    constructor(endpoint:any,capabilities:any) {
+    constructor(id:string, endpoint:any, capabilities:any) {
         super()
-        this.routerId = uuid.v4()
+        this.routerId = id
         this.endpoint = endpoint
         this.capabilities = capabilities
     }

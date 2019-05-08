@@ -9,7 +9,7 @@ import methodOverride = require('method-override')
 import { EventEmitter } from 'events'
 
 import apiRouter from './api'
-import  config  from './config';
+import  config  from './config'
 
 /**
  *
