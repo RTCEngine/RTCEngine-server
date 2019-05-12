@@ -4,10 +4,8 @@ import * as cors from 'cors'
 import * as jwt from 'jwt-simple'
 import turn from './turn'
 import config from './config'
-import Logger from './logger'
+import logger from './logger'
 
-
-const log = new Logger('api')
 
 const apiRouter = Router()
 

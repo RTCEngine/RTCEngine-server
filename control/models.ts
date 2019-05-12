@@ -5,8 +5,7 @@ import {ConnectionOptions, createConnection,Connection,
     Entity, PrimaryGeneratedColumn, Column, BaseEntity,
     CreateDateColumn,UpdateDateColumn,JoinColumn,ManyToOne,
     OneToOne,OneToMany,AfterUpdate,AfterInsert,MoreThan} from 'typeorm'
-
-
+    
 
 import config from './config'
 
@@ -95,8 +94,9 @@ class Stream extends BaseEntity {
 
 const database = config.database as any
 database.entities = [Stream]
-database.synchronize =  true //!!process.env.SYNCHRONIZE 
+database.synchronize = !!process.env.SYNCHRONIZE 
 let options = database as ConnectionOptions
+
 
 createConnection(options).then((conn:Connection) => {
     console.log('database connected')

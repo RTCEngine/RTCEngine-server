@@ -2,12 +2,11 @@ import { EventEmitter } from 'events'
 
 
 import config from './config'
-import Logger from './logger'
+import logger from './logger'
 import request from './request'
 import manager from './manager'
 
 
-const log = new Logger('room')
 
 export default class Room extends EventEmitter {
 
@@ -30,7 +29,6 @@ export default class Room extends EventEmitter {
         return await manager.getPublisher(this.roomId,streamId)
     }
 
-
     public async getPublishers() {
         return await manager.getRoomPublishers(this.roomId)
     }
@@ -42,9 +40,7 @@ export default class Room extends EventEmitter {
     public async createPublisher(node:string, streamId:string, offer:string, data?:any) {
 
         const ret = await request.publish(node, streamId, offer, data)
-
         const publisherId = ret.streamId
-
         await manager.addPublisher(node, this.roomId,streamId,data)
 
         return {
@@ -87,18 +83,14 @@ export default class Room extends EventEmitter {
 
     public async stopSubscriber(node:string,publisherId:string, subscriberId:string) {
 
-
         await request.unplay(node,publisherId, subscriberId)
-
         await manager.removeSubscriber(node,this.roomId, publisherId, subscriberId)
     }
 
     public async shutdown() {
-
         await manager.removeAll(this.roomId)
     }
-
-
+    
     public async dumps() {
 
         let info = {

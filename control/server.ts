@@ -8,14 +8,9 @@ import * as cors from 'cors'
 import errorHandler = require('errorhandler')
 import methodOverride = require('method-override')
 
-const MediaServer = require('medooze-media-server')
-
-import Room from './room'
-import Peer from './peer'
-import config from './config'
 
 import apiRouter from './api'
-import socketHandle from './signalling'
+import SocketServer from './socketserver'
 import { EventEmitter } from 'events'
 
 
@@ -30,9 +25,8 @@ export default class SignallingServer extends EventEmitter {
 
     private app: express.Application
     private httpServer: http.Server
+    private socketServer: SocketServer
 
-    private rooms: Map<string, Room> = new Map()
-    private peers: Set<Peer> = new Set()
 
     constructor(params?: any) {
         //create expressjs application
@@ -60,7 +54,7 @@ export default class SignallingServer extends EventEmitter {
 
         this.httpServer = this.app.listen(port, hostname, callback)
 
-        this.startSocketServer()
+        this.socketServer = new SocketServer(this.httpServer)
 
     }
 
@@ -96,14 +90,7 @@ export default class SignallingServer extends EventEmitter {
         this.app.use(apiRouter)
     }
 
-    private startSocketServer() {
-
-        socketHandle.socketServer.attach(this.httpServer)
-
-        socketHandle.setupSocketServer(this)
-    }
-
     public dumps() {
-        
+
     }
 }

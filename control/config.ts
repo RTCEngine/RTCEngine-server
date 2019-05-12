@@ -9,7 +9,7 @@ export default  {
     },
     
     database: {
-        type:'postgres',
+        type:'postgres', // mysql
         host: 'localhost',
         port: 5432,
         username: 'user',
@@ -19,7 +19,6 @@ export default  {
     
     iceServers: [
         // {
-        //     domain:'turnserver01.dot.cc',
         //     host: '47.107.97.230',
         //     port: 3478,
         //     secret: 'rtcEngine',
