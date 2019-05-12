@@ -1,9 +1,8 @@
-
-
-
 const MediaServer = require('medooze-media-server')
 import MediaRouter from './router'
 import config from './config'
+
+
 
 
 class Context {
@@ -15,6 +14,7 @@ class Context {
         if(this._endpoint) {
             return this._endpoint
         }
+        
         this._endpoint = MediaServer.createEndpoint(config.endpoint)
         return this._endpoint
     }

@@ -103,32 +103,7 @@ export default class SignallingServer extends EventEmitter {
         socketHandle.setupSocketServer(this)
     }
 
-    public getRooms(): Room[] {
-        return Array.from(this.rooms.values())
-    }
-
-    public getRoom(roomId: string): Room {
-        
-        if(this.rooms.get(roomId)) {
-            return this.rooms.get(roomId)
-        }
-        const room = new Room(roomId, this)
-        this.rooms.set(room.getId(), room)
-        
-        room.once('close', () => {
-            this.rooms.delete(room.getId())
-        })
-
-        return room
-    }
-
     public dumps() {
-        let info = {
-            rooms:[]
-        }
-        for (const room of this.rooms.values()) {
-            info.rooms.push(room.dumps())
-        }
-        return info
+        
     }
 }

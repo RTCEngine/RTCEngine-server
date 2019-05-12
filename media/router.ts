@@ -72,6 +72,11 @@ class MediaRouter extends EventEmitter {
         }
     }
 
+    
+    public setIncoming(incoming:any) {
+        this.incoming = incoming
+    }
+
 
     /**
      * @param {string} sdp

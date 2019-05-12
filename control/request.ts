@@ -3,12 +3,10 @@ import fetch from 'node-fetch'
 
 
 
-const baseURL = 'http://localhost:6000'
 
+const publish = async (node:string ,streamId: string, sdp: string, data?:any) => {
 
-const publish = async (streamId: string, sdp: string, data?:any) => {
-
-    let res = await fetch(baseURL + '/api/publish', {
+    let res = await fetch('http://'+ node + '/api/publish', {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -25,10 +23,10 @@ const publish = async (streamId: string, sdp: string, data?:any) => {
 
 
 
-const unpublish = async (streamId: string) => {
+const unpublish = async (node:string ,streamId: string) => {
 
     // streamId
-    let res = await fetch(baseURL + '/api/unpublish', {
+    let res = await fetch('http://'+ node  + '/api/unpublish', {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -42,12 +40,9 @@ const unpublish = async (streamId: string) => {
 }
 
 
-const play = async (streamId: string, sdp: string) => {
+const play = async (node:string, streamId: string, sdp: string) => {
 
-    // const sdp = req.body.sdp
-    // const streamId = req.body.streamId
-    
-    let res = await fetch(baseURL + '/api/play', {
+    let res = await fetch('http://'+ node  + '/api/play', {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -63,12 +58,12 @@ const play = async (streamId: string, sdp: string) => {
 }
 
 
-const unplay = async (streamId: string, outgoingId:string) => {
+const unplay = async (node:string,streamId: string, outgoingId:string) => {
 
     // const streamId = req.body.streamId
     // const outgoingId = req.body.outgoingId 
 
-    let res = await fetch(baseURL + '/api/unplay', {
+    let res = await fetch('http://'+ node  + '/api/unplay', {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,9 +78,28 @@ const unplay = async (streamId: string, outgoingId:string) => {
 }
 
 
-export {
+const pull = async (origin:string, edge:string, streamId:string) => {
+
+    let res = await fetch('http://' + edge + '/api/pull', {
+        method: 'post',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            origin: origin,
+            streamId: streamId
+        })
+    })
+
+    let ret = await res.json()
+    console.dir(ret)
+    return ret.d
+}
+
+
+
+export default {
     publish,
     unpublish,
     play,
-    unplay
+    unplay,
+    pull
 }

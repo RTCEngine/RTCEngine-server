@@ -6,6 +6,7 @@ import turn from './turn'
 import config from './config'
 import Logger from './logger'
 
+
 const log = new Logger('api')
 
 const apiRouter = Router()
@@ -18,6 +19,7 @@ apiRouter.options('/api/generateToken', cors())
 apiRouter.post('/api/generateToken', async (req: Request, res: Response) => {
 
     let appkey = req.body.appkey
+
     let room = req.body.room
     let user = req.body.user
 
@@ -36,8 +38,7 @@ apiRouter.post('/api/generateToken', async (req: Request, res: Response) => {
         room: room,
         user: user,
         wsUrl: wsUrl,
-        iceServers: iceServers,
-        iceTransportPolicy: config.media.iceTransportPolicy
+        iceServers: iceServers
     }
 
     let token: string = jwt.encode(data, secret)
@@ -50,10 +51,32 @@ apiRouter.post('/api/generateToken', async (req: Request, res: Response) => {
 })
 
 
+
+
 apiRouter.options('/api/config', cors())
 apiRouter.post('/api/config', async (req: Request, res:Response) => {
 
+    let iceServers = []
+
+    for (let server of config.iceServers) {
+        let iceServer = turn.genRestTurn(server.host, server.port, server.transports, server.secret)
+        iceServers.push(iceServer)
+    }
+
+    const medianode = config.medianode[Math.floor(Math.random()*config.medianode.length)]
+
+    let data = {
+        signallingServer: config.server.externalUrl,
+        iceServers: iceServers,
+        medianode: medianode
+    }
     
+    res.json({
+        s: 10000,
+        d: data,
+        e: ''
+    })
+
 })
 
 

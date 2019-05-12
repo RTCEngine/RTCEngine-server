@@ -11,11 +11,10 @@ export default {
             ]
         },
         video: {
-            codecs: ['vp8'],
+            codecs: ['h264'],
             //codecs: ['h264;packetization-mode=1;profile-level-id=42e01f'],
             rtx: true,
             rtcpfbs: [
-                { 'id': 'goog-remb' },
                 { 'id': 'transport-cc' },
                 { "id": "ccm", "params": ["fir"] },
                 { "id": "nack" },

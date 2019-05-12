@@ -1,7 +1,8 @@
 import {Response, Request, Router  } from 'express'
-import * as cors from 'cors'
 
-const MediaServer = require('medooze-media-server')
+
+const SemanticSDP = require('semantic-sdp')
+const SDPInfo		= SemanticSDP.SDPInfo
 
 import MediaRouter from './router'
 
@@ -141,11 +142,49 @@ apiRouter.get('/api/offer', async (req: Request, res:Response) => {
 
 
 
-apiRouter.options('/api/config', cors())
-apiRouter.post('/api/config', async (req: Request, res:Response) => {
+apiRouter.post('/api/pull', async (req:Request, res:Response) => {
 
+    
+    const origin = req.body.origin
+    const streamId = req.body.streamId 
+
+    const offer = context.endpoint.createOffer(config.capabilities)
+
+    const response = await fetch('http://' + origin + '/api/play', {
+        method: 'post',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            streamId: streamId,
+            sdp: offer.toString()
+        })
+    })
+
+    const ret = await response.json()
+
+    const { sdp } = ret.d 
+
+    const answer  = SDPInfo.process(sdp)
+
+    const transport = context.endpoint.createTransport(answer, offer, {disableSTUNKeepAlive:true})
+
+    transport.setLocalProperties(offer)
+    transport.setRemoteProperties(answer)
+
+    const streamInfo = answer.getFirstStream()
+    const incoming = transport.createIncomingStream(streamInfo)
+
+    const router = new MediaRouter(streamId, context.endpoint, config.capabilities)
+
+    router.setIncoming(incoming)
+
+    context.routers.set(streamId, router)
+
+    res.json({
+        s: 10000,
+        d: {},
+        e: ''
+    })
 
 })
-
 
 export default apiRouter

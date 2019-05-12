@@ -1,24 +1,11 @@
 import * as socketio from 'socket.io'
 import * as jwt from 'jwt-simple'
 
-const SemanticSDP = require('semantic-sdp')
-
-const SDPInfo = SemanticSDP.SDPInfo
-const MediaInfo = SemanticSDP.MediaInfo
-const CandidateInfo = SemanticSDP.CandidateInfo
-const DTLSInfo = SemanticSDP.DTLSInfo
-const ICEInfo = SemanticSDP.ICEInfo
-const StreamInfo = SemanticSDP.StreamInfo
-const TrackInfo = SemanticSDP.TrackInfo
-const Direction = SemanticSDP.Direction
-const CodecInfo = SemanticSDP.CodecInfo
-
 import Server from './server'
 import Room from './room'
 import Peer from './peer'
 import config from './config'
 import * as request from './request'
-import Router from './router'
 
 const socketServer = socketio({
     pingInterval: 10000,
@@ -32,22 +19,34 @@ const setupSocketServer = async (server: Server) => {
 
     socketServer.on('connection', async (socket: SocketIO.Socket) => {
 
-        let token = socket.handshake.query.token
+        let roomId = socket.handshake.query.room
+        let userId = socket.handshake.query.user
 
-        let tokenInfo = jwt.decode(token, null, true)
+        let joined = false
+        let published = false
 
-        const roomId = tokenInfo.room
+        let medianode = config.medianode[Math.floor(Math.random()*config.medianode.length)]
 
-        const room = server.getRoom(roomId)
-
-        const routers: Map<string,Router> = new Map()
+        const room = new Room(roomId)
         
         socket.on('join', async (data:any, ack:Function) => {
 
             socket.join(roomId)
 
+            joined = true
+
+            console.dir(socket.handshake)
+
+            let roomInfo
+            
+            try {
+                roomInfo = await room.dumps()
+            } catch (error) {
+                console.error(error)
+            }
+
             ack({
-                room: room.dumps()
+                room: roomInfo
             })
         })
 
@@ -57,18 +56,15 @@ const setupSocketServer = async (server: Server) => {
             const publisherId = data.stream.publisherId
             const streamData = data.stream.data
 
-            const router = room.newRouter()
-            routers.set(router.getId(), router)
-            router.once('close', () => {
-                routers.delete(router.getId())
-            })
-
-            const { answer } = await router.createPublisher(publisherId, sdp, streamData)
+            const { answer } = await room.createPublisher(medianode.node,publisherId,sdp)
 
             ack({sdp:answer})
             
             socket.to(roomId).emit('streampublished', {
-                stream: router.dumps()
+                stream: {
+                    publisherId: publisherId,
+                    data: streamData
+                }
             })
         })
 
@@ -76,31 +72,55 @@ const setupSocketServer = async (server: Server) => {
         socket.on('unpublish', async (data:any, ack:Function) => {
 
             const publisherId = data.stream.publisherId
-            const router = room.getRouterByPublisher(publisherId)
 
-            await router.stopPublisher()
+            await room.stopPublisher(medianode.node,publisherId)
 
             ack({})
 
             socket.to(roomId).emit('streamunpublished', {
-                stream: router.dumps()
+                stream: {
+                    publisherId:publisherId
+                }
             })
         })
+
 
         socket.on('subscribe', async (data:any, ack:Function) => {
 
             const sdp = data.sdp
             const publisherId = data.stream.publisherId
 
-            const router = room.getRouterByPublisher(publisherId)
 
-            const { answer,subscriberId } = await router.createSubscriber(sdp)
+            const stream = await room.getPublisher(publisherId)
+
+            if (!stream) {
+                console.dir(stream)
+                ack({
+                    error: 'can not find stream',
+                    code:1000
+                })
+                return
+            }
+
+            // check media node, they are not in the same node
+            if (stream.node !== medianode.node) {
+
+                // check relay stream 
+                const relay = await room.getNodeStreamRelay(medianode.node,publisherId)
+
+                if (!relay) {
+                    // now we need relay
+                    await room.createStreamRelay(stream.node, medianode.node, publisherId)
+                }
+            }
+
+            const { answer,subscriberId } = await room.createSubscriber(medianode.node,publisherId, sdp)
 
             ack({
                 sdp: answer, 
                 stream: {
                     subscriberId: subscriberId, 
-                    data: router.getData()
+                    data: stream.data
                 }
             })
         
@@ -111,9 +131,7 @@ const setupSocketServer = async (server: Server) => {
             const publisherId = data.stream.publisherId
             const subscriberId = data.stream.subscriberId
 
-            const router = room.getRouterByPublisher(publisherId)
-
-            router.stopSubscriber(subscriberId)
+            await room.stopSubscriber(medianode.node, publisherId, subscriberId)
 
             ack({})
         })
@@ -128,22 +146,31 @@ const setupSocketServer = async (server: Server) => {
         })
 
         socket.on('leave', async (data:any, ack:Function) => {
+
             socket.disconnect(true)
         })
 
         socket.on('disconnect', async () => {
 
-            for (let router of routers.values()) {
+            if (published) {
                 socket.to(roomId).emit('streamunpublished', {
-                    stream: router.dumps()
+                    stream: {
+                        publisherId: userId
+                    }
                 })
-            }
 
-            for (let router of routers.values()) {
-                await router.stopPublisher()
+                await room.stopPublisher(medianode.node, userId)
             }
+            
 
             socket.leaveAll()
+
+            socketServer.of('/').in(roomId).clients( async (error, clients) => {
+                if (clients && clients.length == 0) {
+                    await room.shutdown()
+                }
+            })
+
         })
     })
 }
