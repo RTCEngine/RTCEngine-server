@@ -28,6 +28,10 @@ export default class Room extends EventEmitter {
     public async getPublisher(streamId:string) {
         return await manager.getPublisher(this.roomId,streamId)
     }
+    
+    public async getSubscriber(streamId:string, subscriberId:string) {
+        return await manager.getSubscriber(this.roomId, streamId, subscriberId)
+    }
 
     public async getPublishers() {
         return await manager.getRoomPublishers(this.roomId)

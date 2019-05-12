@@ -117,6 +117,18 @@ const addSubscriber = async (node:string,room:string, publisherId:string, subscr
 }
 
 
+const getSubscriber = async (room:string,publisherId:string, subscriberId:string) => {
+
+    const stream = await getRepository(Stream).findOne({
+        where: {
+            room: room,
+            streamId: publisherId,
+            subscriberId: subscriberId
+        }
+    })
+    return stream
+}
+
 
 const removeSubscriber = async (node:string, room:string, publisherId:string, subscriberId:string) => {
 
@@ -151,6 +163,7 @@ export default {
     addPublisher,
     removePublisher,
     addSubscriber,
+    getSubscriber,
     removeSubscriber,
     getRoomPublishers,
     getNodeStreamRelay,

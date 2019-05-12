@@ -101,9 +101,8 @@ class SocketServer extends EventEmitter {
                 const sdp = data.sdp
                 const publisherId = data.stream.publisherId
     
-    
                 const stream = await room.getPublisher(publisherId)
-    
+
                 if (!stream) {
                     console.dir(stream)
                     ack({
@@ -112,20 +111,28 @@ class SocketServer extends EventEmitter {
                     })
                     return
                 }
+
+                let subscribeNode = medianode.node
     
                 // check media node, they are not in the same node
                 if (stream.node !== medianode.node) {
-    
-                    // check relay stream 
-                    const relay = await room.getNodeStreamRelay(medianode.node,publisherId)
-    
-                    if (!relay) {
-                        // now we need relay
-                        await room.createStreamRelay(stream.node, medianode.node, publisherId)
+
+                    // we use medianode to medianode relay
+                    if (config.serverRelay) {
+
+                        // check relay stream 
+                        const relay = await room.getNodeStreamRelay(medianode.node,publisherId)
+                        if (!relay) {
+                            // now we need relay
+                            await room.createStreamRelay(stream.node, medianode.node, publisherId)
+                        }
+                    } else {
+                        // we do not do medianode relay,  just watch stream in another node 
+                        subscribeNode = stream.node
                     }
                 }
     
-                const { answer,subscriberId } = await room.createSubscriber(medianode.node,publisherId, sdp)
+                const { answer,subscriberId } = await room.createSubscriber(subscribeNode,publisherId, sdp)
     
                 ack({
                     sdp: answer, 

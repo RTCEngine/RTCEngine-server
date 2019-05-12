@@ -16,7 +16,7 @@ export default  {
         password: 'password',
         database: 'rtcengine_db'
     },
-    
+
     iceServers: [
         // {
         //     host: '47.107.97.230',
@@ -31,6 +31,8 @@ export default  {
         refreshPeriod: 10000,  // ten seconds
         waitForIntra: false
     },
+    
+    serverRelay: true,  // true or false
 
     medianode: [
         {
