@@ -18,13 +18,15 @@ class Stream extends BaseEntity {
     @PrimaryGeneratedColumn()
     id: number 
 
+
     @Column({
         length:50
     })
     room:string
 
     @Column({
-        length:50
+        length:50,
+        nullable:true
     })
     user:string
 

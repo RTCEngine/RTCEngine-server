@@ -16,6 +16,8 @@ const publish = async (node:string ,streamId: string, sdp: string, data?:any) =>
         })
     })
 
+    console.log(res)
+    
     let ret = await res.json()
     console.dir(ret)
     return ret.d

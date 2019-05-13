@@ -8,6 +8,7 @@ import MediaRouter from './router'
 
 import config from './config'
 import context from './context'
+import fetch from 'node-fetch'
 
 const apiRouter = Router()
 
@@ -20,18 +21,21 @@ apiRouter.get('/test', async (req: Request, res: Response) => {
 
 
 apiRouter.post('/api/publish', async (req: Request, res:Response) => {
-    console.dir(req.body)
 
     const sdp = req.body.sdp
     const streamId = req.body.streamId
 
-    // todo check exist 
     
     const router = new MediaRouter(streamId, context.endpoint, config.capabilities)
 
     const {answer} = router.createIncoming(sdp)
 
     context.routers.set(router.getId(), router)
+
+
+    console.log('publish', streamId)
+    console.log('publish', sdp)
+    
 
     res.json({
         s: 10000,

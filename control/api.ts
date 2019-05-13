@@ -61,12 +61,10 @@ apiRouter.post('/api/config', async (req: Request, res:Response) => {
         iceServers.push(iceServer)
     }
 
-    const medianode = config.medianode[Math.floor(Math.random()*config.medianode.length)]
 
     let data = {
         signallingServer: config.server.externalUrl,
-        iceServers: iceServers,
-        medianode: medianode
+        iceServers: iceServers
     }
     
     res.json({

@@ -60,6 +60,7 @@ class MediaRouter extends EventEmitter {
             candidates: this.endpoint.getLocalCandidates(),
             capabilities: this.capabilities
         })
+        
         transport.setLocalProperties(answer)
         const streamInfo = offer.getFirstStream()
         const incoming = transport.createIncomingStream(streamInfo)

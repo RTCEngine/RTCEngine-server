@@ -46,8 +46,6 @@ class SocketServer extends EventEmitter {
     
                 joined = true
     
-                console.dir(socket.handshake)
-    
                 let roomInfo
                 
                 try {
