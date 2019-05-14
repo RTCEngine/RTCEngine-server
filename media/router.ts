@@ -18,15 +18,13 @@ class MediaRouter extends EventEmitter {
 
     private routerId: string
     private capabilities: any
-    private endpoint: any
     private incoming: any
     private outgoings: Map<string,any> = new Map()
 
 
-    constructor(id:string, endpoint:any, capabilities:any) {
+    constructor(id:string, capabilities:any) {
         super()
         this.routerId = id
-        this.endpoint = endpoint
         this.capabilities = capabilities
     }
 
@@ -43,21 +41,26 @@ class MediaRouter extends EventEmitter {
     }
 
 
+    public setIncoming(incoming:any) {
+        this.incoming = incoming
+    }
+
+
     /**
      * @param {string} sdp
      * @returns
      * @memberof Router
      */
-    public createIncoming(sdp:string) {
+    public createIncoming(sdp:string, endpoint:any) {
         
         const offer = SDPInfo.process(sdp)
-        const transport = this.endpoint.createTransport(offer)
+        const transport = endpoint.createTransport(offer)
         transport.setRemoteProperties(offer)
 
         const answer = offer.answer({
             dtls: transport.getLocalDTLSInfo(),
             ice: transport.getLocalICEInfo(),
-            candidates: this.endpoint.getLocalCandidates(),
+            candidates: endpoint.getLocalCandidates(),
             capabilities: this.capabilities
         })
         
@@ -73,9 +76,27 @@ class MediaRouter extends EventEmitter {
         }
     }
 
-    
-    public setIncoming(incoming:any) {
+
+    public createRelayIncoming(remoteSdp:string, localSdp:string, endpoint:any) {
+
+        const remote = SDPInfo.process(remoteSdp)
+        const local = SDPInfo.process(localSdp)
+
+
+        const transport = endpoint.createTransport(remote, local, {disableSTUNKeepAlive: true})
+        transport.setLocalProperties(local)
+        transport.setRemoteProperties(remote)
+
+        const streamInfo = remote.getFirstStream()
+        const incoming = transport.createIncomingStream(streamInfo)
+
+        incoming.assoTransport = transport
         this.incoming = incoming
+
+        return {
+            incoming: incoming
+        }
+        
     }
 
 
@@ -84,16 +105,16 @@ class MediaRouter extends EventEmitter {
      * @returns
      * @memberof Router
      */
-    public createOutgoing(sdp:string, outgoingId?:string) {
+    public createOutgoing(sdp:string, endpoint:any) {
 
         const offer = SDPInfo.process(sdp)
-        const transport = this.endpoint.createTransport(offer)
+        const transport = endpoint.createTransport(offer)
         transport.setRemoteProperties(offer)
 
         const answer = offer.answer({
             dtls: transport.getLocalDTLSInfo(),
             ice: transport.getLocalICEInfo(),
-            candidates: this.endpoint.getLocalCandidates(),
+            candidates: endpoint.getLocalCandidates(),
             capabilities: this.capabilities
         })
         transport.setLocalProperties(answer)

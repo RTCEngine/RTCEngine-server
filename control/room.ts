@@ -45,6 +45,7 @@ export default class Room extends EventEmitter {
 
         const ret = await request.publish(node, streamId, offer, data)
         const publisherId = ret.streamId
+
         await manager.addPublisher(node, this.roomId,streamId,data)
 
         return {
@@ -64,14 +65,6 @@ export default class Room extends EventEmitter {
     }
 
 
-    // public async createRelaySubscriber(origin:string, edge:string,  publisherId:string, offer:string) {
-
-    //     const ret = await request.pull(origin, edge, publisherId)
-
-
-    //     await manager.addNodeStreamRelay(edge, this.roomId, publisherId)
-    // }
-
 
     public async createSubscriber(origin:string,node:string, publisherId:string, offer:string) {
 
@@ -88,8 +81,6 @@ export default class Room extends EventEmitter {
             answer: ret.sdp
         }
     }
-
-
 
 
     public async stopSubscriber(node:string,publisherId:string, subscriberId:string) {

@@ -3,11 +3,10 @@ import MediaRouter from './router'
 import config from './config'
 
 
-
-
 class Context {
     private _routers:Map<string,MediaRouter>  = new Map()
     private _endpoint:any
+    private _relayEndpoint:Map<string,any> = new Map()
 
     constructor(){}
     get endpoint(){
@@ -20,6 +19,9 @@ class Context {
     }
     get routers() {
         return this._routers
+    }
+    get relayEndpoints() {
+        return this._relayEndpoint
     }
 }
 

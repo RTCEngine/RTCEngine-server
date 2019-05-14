@@ -139,8 +139,12 @@ class SocketServer extends EventEmitter {
                 const publisherId = data.stream.publisherId
                 const subscriberId = data.stream.subscriberId
 
-    
-                await room.stopSubscriber(medianode.node, publisherId, subscriberId)
+                  // find the subscriber
+                const stream = await room.getSubscriber(publisherId, subscriberId)
+
+                if (stream) {
+                    await room.stopSubscriber(medianode.node, publisherId, subscriberId)
+                }
     
                 ack({})
             })
