@@ -99,7 +99,6 @@ class MediaRouter extends EventEmitter {
         transport.setLocalProperties(answer)
 
         const outgoing = transport.createOutgoingStream({
-            id: outgoingId,
 			audio: this.incoming.getAudioTracks().length,
 			video: this.incoming.getVideoTracks().length
         })

@@ -42,17 +42,19 @@ const unpublish = async (node:string ,streamId: string) => {
 }
 
 
-const play = async (node:string, streamId: string, sdp: string) => {
+const play = async (origin:string,node:string, streamId: string, sdp: string) => {
 
     let res = await fetch('http://'+ node  + '/api/play', {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+            origin: origin,
             streamId: streamId,
             sdp: sdp
         })
     })
 
+    
     let ret = await res.json()
     console.dir(ret)
     return ret.d
@@ -62,8 +64,6 @@ const play = async (node:string, streamId: string, sdp: string) => {
 
 const unplay = async (node:string,streamId: string, outgoingId:string) => {
 
-    // const streamId = req.body.streamId
-    // const outgoingId = req.body.outgoingId 
 
     let res = await fetch('http://'+ node  + '/api/unplay', {
         method: 'post',
@@ -80,9 +80,9 @@ const unplay = async (node:string,streamId: string, outgoingId:string) => {
 }
 
 
-const pull = async (origin:string, edge:string, streamId:string) => {
+const pull = async (origin:string, node:string, streamId:string) => {
 
-    let res = await fetch('http://' + edge + '/api/pull', {
+    let res = await fetch('http://' + node + '/api/pull', {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

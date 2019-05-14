@@ -54,13 +54,6 @@ export default class Room extends EventEmitter {
     }
 
 
-    public async createStreamRelay(origin:string, edge:string,  streamId:string) {
-
-        const ret = await request.pull(origin, edge, streamId)
-
-        await manager.addNodeStreamRelay(edge, this.roomId, streamId)
-    }
-
     public async stopPublisher(node:string, streamId:string) {
 
         await request.unpublish(node, streamId)
@@ -69,11 +62,24 @@ export default class Room extends EventEmitter {
         // stop subscribers
         await manager.removePublisher(this.roomId,streamId)
     }
-    
 
-    public async createSubscriber(node:string, publisherId:string, offer:string) {
 
-        const ret = await request.play(node, publisherId, offer)
+    // public async createRelaySubscriber(origin:string, edge:string,  publisherId:string, offer:string) {
+
+    //     const ret = await request.pull(origin, edge, publisherId)
+
+
+    //     await manager.addNodeStreamRelay(edge, this.roomId, publisherId)
+    // }
+
+
+    public async createSubscriber(origin:string,node:string, publisherId:string, offer:string) {
+
+        const ret = await request.play(origin,node, publisherId, offer)
+
+        if (ret.newRelay) {
+            await manager.addNodeStreamRelay(node, this.roomId, publisherId)
+        }
 
         await manager.addSubscriber(node, this.roomId, publisherId, ret.outgoingId)
 
@@ -81,8 +87,9 @@ export default class Room extends EventEmitter {
             subscriberId: ret.outgoingId,
             answer: ret.sdp
         }
-
     }
+
+
 
 
     public async stopSubscriber(node:string,publisherId:string, subscriberId:string) {

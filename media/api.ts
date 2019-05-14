@@ -79,24 +79,58 @@ apiRouter.post('/api/play', async (req: Request, res:Response) => {
 
     const sdp = req.body.sdp
     const streamId = req.body.streamId
+    const origin = req.body.origin
 
-    const router = context.routers.get(streamId)
+    let newRelay = false
+    let router = context.routers.get(streamId)
 
+    // if we do not have this stream,  we try to pull from origin 
     if (!router) {
-        res.json({
-            s: 10004,  // does not exit
-            d: {},
-            e: '',
+
+        const relayOffer = context.endpoint.createOffer(config.capabilities)
+
+        const response = await fetch('http://' + origin + '/api/play', {
+            method: 'post',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                streamId: streamId,
+                sdp: relayOffer.toString()
+            })
         })
-        return
+    
+        const ret = await response.json()
+
+        const relayAnswer = SDPInfo.process(ret.d.sdp)
+
+        const relayTransport = context.endpoint.createTransport(relayAnswer, relayOffer, {disableSTUNKeepAlive: true})
+        relayTransport.setLocalProperties(relayOffer)
+        relayTransport.setRemoteProperties(relayAnswer)
+
+        const relayStreamInfo = relayAnswer.getFirstStream()
+
+        const relayIncomingStream = relayTransport.createIncomingStream(relayStreamInfo)
+
+        relayIncomingStream.on('stopped', () => {
+            // delete from routers
+        })
+
+        router = new MediaRouter(streamId, context.endpoint, config.capabilities)
+
+        relayIncomingStream.assoTransport = relayTransport 
+
+        router.setIncoming(relayIncomingStream)
+        context.routers.set(streamId, router)
+
+        newRelay = true
     }
     
     const {answer, outgoing} = router.createOutgoing(sdp)
-
+    
     res.json({
         s: 10000,
         d: { 
             sdp: answer,
+            newRelay: newRelay,
             outgoingId: outgoing.getId()
         },
         e: ''
@@ -177,8 +211,16 @@ apiRouter.post('/api/pull', async (req:Request, res:Response) => {
     const streamInfo = answer.getFirstStream()
     const incoming = transport.createIncomingStream(streamInfo)
 
+    console.error('relay================')
+    console.dir(streamInfo)
+
+    console.error('relay================')
+    console.dir(incoming)
+
     const router = new MediaRouter(streamId, context.endpoint, config.capabilities)
 
+    incoming.assoTransport = transport 
+    
     router.setIncoming(incoming)
 
     context.routers.set(streamId, router)

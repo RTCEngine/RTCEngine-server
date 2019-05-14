@@ -65,6 +65,7 @@ class SocketServer extends EventEmitter {
                 const sdp = data.sdp
                 const publisherId = data.stream.publisherId
                 const streamData = data.stream.data
+
     
                 const { answer } = await room.createPublisher(medianode.node,publisherId,sdp)
     
@@ -110,27 +111,17 @@ class SocketServer extends EventEmitter {
                     return
                 }
 
-                let subscribeNode = medianode.node
-    
-                // check media node, they are not in the same node
-                if (stream.node !== medianode.node) {
+                let subscribeNode
 
-                    // we use medianode to medianode relay
-                    if (config.serverRelay) {
-
-                        // check relay stream 
-                        const relay = await room.getNodeStreamRelay(medianode.node,publisherId)
-                        if (!relay) {
-                            // now we need relay
-                            await room.createStreamRelay(stream.node, medianode.node, publisherId)
-                        }
-                    } else {
-                        // we do not do medianode relay,  just watch stream in another node 
-                        subscribeNode = stream.node
-                    }
+                // we use medianode to medianode relay
+                if (config.serverRelay) {
+                    subscribeNode = medianode.node
+                } else {
+                    // we do not do medianode relay,  just watch stream in origin node 
+                    subscribeNode = stream.node
                 }
-    
-                const { answer,subscriberId } = await room.createSubscriber(subscribeNode,publisherId, sdp)
+                
+                const { answer,subscriberId } = await room.createSubscriber(stream.node,subscribeNode,publisherId, sdp)
     
                 ack({
                     sdp: answer, 
@@ -147,6 +138,7 @@ class SocketServer extends EventEmitter {
 
                 const publisherId = data.stream.publisherId
                 const subscriberId = data.stream.subscriberId
+
     
                 await room.stopSubscriber(medianode.node, publisherId, subscriberId)
     

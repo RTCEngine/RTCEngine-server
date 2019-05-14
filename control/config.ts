@@ -38,10 +38,10 @@ export default  {
         {
             name: 'medianode01',
             node: '127.0.0.1:6001'
+        },
+        {
+            name: 'medianode02',
+            node: '127.0.0.1:6002'
         }
-        // {
-        //     name: 'medianode02',
-        //     node: '127.0.0.1:6002'
-        // }
     ]
 }
