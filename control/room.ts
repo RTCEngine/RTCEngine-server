@@ -41,7 +41,7 @@ export default class Room extends EventEmitter {
         return await manager.getNodeStreamRelay(node,this.roomId,streamId)
     }
 
-    public async createPublisher(node:string, streamId:string, offer:string, data?:any) {
+    public async createPublisher(node:string,streamId:string,offer:string, data?:any) {
 
         const ret = await request.publish(node, streamId, offer, data)
         const publisherId = ret.streamId

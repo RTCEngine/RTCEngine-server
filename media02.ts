@@ -9,7 +9,7 @@ const media02 = new MediaServer({
     endpoint: '127.0.0.1'
 })
 
-media02.start(6001, '0.0.0.0', () => {
+media02.start(6002, '0.0.0.0', () => {
 
     console.log('media server start on', 6002)
 })
