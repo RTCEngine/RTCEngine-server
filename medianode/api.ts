@@ -19,7 +19,6 @@ apiRouter.get('/test', async (req: Request, res: Response) => {
 })
 
 
-
 apiRouter.post('/api/publish', async (req: Request, res:Response) => {
 
     const sdp = req.body.sdp
@@ -179,7 +178,7 @@ apiRouter.post('/api/relay', async (req:Request, res:Response) => {
             e: ''
         })
     }
-
+    
     const relayEndpoint = MediaServer.createEndpoint(config.endpoint)
     const {answer, outgoing} = router.createOutgoing(sdp, relayEndpoint)
 

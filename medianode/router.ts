@@ -6,21 +6,20 @@ const MediaServer = require('medooze-media-server')
 const SemanticSDP = require('semantic-sdp')
 
 const SDPInfo = SemanticSDP.SDPInfo
+
 /**
  *
  *
  * @class Router
  * @extends {EventEmitter}
- */
-
- 
+ */ 
 class MediaRouter extends EventEmitter {
 
     private routerId: string
     private capabilities: any
     private incoming: any
     private outgoings: Map<string,any> = new Map()
-
+    
 
     constructor(id:string, capabilities:any) {
         super()

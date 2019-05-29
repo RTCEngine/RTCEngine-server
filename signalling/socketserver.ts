@@ -29,11 +29,13 @@ class SocketServer extends EventEmitter {
 
         this.socketServer.on('connection', async (socket: SocketIO.Socket) => {
 
-            let roomId = socket.handshake.query.room
-            let userId = socket.handshake.query.user
+            const roomId = socket.handshake.query.room
+            const userId = socket.handshake.query.user
     
             let joined = false
             let published = false
+            let streamId = null
+
     
             let medianode = config.medianode[Math.floor(Math.random()*config.medianode.length)]
     
@@ -66,7 +68,6 @@ class SocketServer extends EventEmitter {
                 const publisherId = data.stream.publisherId
                 const streamData = data.stream.data
 
-    
                 const { answer } = await room.createPublisher(medianode.node,publisherId,sdp)
     
                 ack({sdp:answer})
@@ -78,7 +79,6 @@ class SocketServer extends EventEmitter {
                     }
                 })
             })
-
 
             socket.on('unpublish', async (data:any, ack:Function) => {
 
@@ -99,11 +99,11 @@ class SocketServer extends EventEmitter {
 
                 const sdp = data.sdp
                 const publisherId = data.stream.publisherId
-    
+                const user = data.stream.userId
+
                 const stream = await room.getPublisher(publisherId)
 
                 if (!stream) {
-                    console.dir(stream)
                     ack({
                         error: 'can not find stream',
                         code:1000

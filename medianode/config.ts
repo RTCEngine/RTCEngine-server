@@ -1,3 +1,4 @@
+
 export default {
     debug: true,
     ultraDebug: true,
@@ -11,7 +12,7 @@ export default {
             ]
         },
         video: {
-            codecs: ['vp8'],
+            codecs: ['h264'],
             //codecs: ['h264;packetization-mode=1;profile-level-id=42e01f'],
             rtx: true,
             rtcpfbs: [
@@ -21,7 +22,9 @@ export default {
                 { "id": "nack", "params": ["pli"] }
             ],
             extensions: [
-                'http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01'
+                'http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time',
+                'http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01',
+                'urn:ietf:params:rtp-hdrext:sdes:mid'
             ]
         }
     }

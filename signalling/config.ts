@@ -7,9 +7,9 @@ export default  {
         host: '127.0.0.1',
         port: 6379
     },
-    
+
     database: {
-        type:'postgres', // mysql
+        type:'postgres', // change to mysql
         host: 'localhost',
         port: 5432,
         username: 'user',
@@ -25,23 +25,19 @@ export default  {
         //     transports: ['udp', 'tcp']
         // },
     ],
-    // to disable recorder  comment this
-    recorder: {
-        enable: false,
-        refreshPeriod: 10000,  // ten seconds
-        waitForIntra: false
-    },
     
     serverRelay: true,  // true or false
 
     medianode: [
         {
             name: 'medianode01',
-            node: '127.0.0.1:6001'
+            node: '127.0.0.1:6001',
+            domain: 'media01.dot.cc'
         },
         {
             name: 'medianode02',
-            node: '127.0.0.1:6002'
+            node: '127.0.0.1:6002',
+            domain: 'media01.dot.cc'
         }
     ]
 }
