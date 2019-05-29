@@ -1,15 +1,15 @@
-import * as program from 'commander'
 import * as dotenv from 'dotenv'
 
 
-
-import MediaServer from './media/server'
+import MediaServer from './medianode/server'
 
 const media02 = new MediaServer({
     endpoint: '127.0.0.1'
 })
 
-media02.start(6002, '0.0.0.0', () => {
+const port = process.env.PORT ? parseInt(process.env.PORT) : 6002
+const host = process.env.HOST ? process.env.HOST : '127.0.0.1'
 
-    console.log('media server start on', 6002)
+media02.start(port, host, () => {
+    console.log('media server start on', port)
 })

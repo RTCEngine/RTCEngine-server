@@ -1,16 +1,16 @@
-import * as program from 'commander'
-import * as dotenv from 'dotenv'
+import { config } from 'dotenv'
 
-
-dotenv.config()
-
-import SignallingServer from './control/server'
-
+import SignallingServer from './signalling/server'
 
 const signalling = new SignallingServer()
 
-signalling.start(3888, '0.0.0.0', () => {
-    console.log('signalling server start on', 3888)
+config()
+
+const port = process.env.PORT ? parseInt(process.env.PORT) : 3888
+const host = process.env.HOST ? process.env.HOST : '127.0.0.1'
+
+signalling.start(port, host, () => {
+    console.log('signalling server start on', host, port)
 })
 
 
