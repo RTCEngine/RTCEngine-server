@@ -30,8 +30,7 @@ class SocketServer extends EventEmitter {
         this.socketServer.on('connection', async (socket: SocketIO.Socket) => {
 
             const roomId = socket.handshake.query.room
-            const userId = socket.handshake.query.user
-    
+
             let joined = false
             let published = false
             let streamId = null
@@ -68,6 +67,8 @@ class SocketServer extends EventEmitter {
                 const publisherId = data.stream.publisherId
                 const streamData = data.stream.data
 
+                streamId = publisherId
+
                 const { answer } = await room.createPublisher(medianode.node,publisherId,sdp)
     
                 ack({sdp:answer})
@@ -99,7 +100,6 @@ class SocketServer extends EventEmitter {
 
                 const sdp = data.sdp
                 const publisherId = data.stream.publisherId
-                const user = data.stream.userId
 
                 const stream = await room.getPublisher(publisherId)
 
@@ -169,11 +169,11 @@ class SocketServer extends EventEmitter {
                 if (published) {
                     socket.to(roomId).emit('streamunpublished', {
                         stream: {
-                            publisherId: userId
+                            publisherId: streamId
                         }
                     })
     
-                    await room.stopPublisher(medianode.node, userId)
+                    await room.stopPublisher(medianode.node, streamId)
                 }
                 
     

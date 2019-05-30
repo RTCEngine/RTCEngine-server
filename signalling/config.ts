@@ -34,10 +34,10 @@ export default  {
             node: '127.0.0.1:6001',
             domain: 'media01.dot.cc'
         },
-        {
-            name: 'medianode02',
-            node: '127.0.0.1:6002',
-            domain: 'media01.dot.cc'
-        }
+        // {
+        //     name: 'medianode02',
+        //     node: '127.0.0.1:6002',
+        //     domain: 'media01.dot.cc'
+        // }
     ]
 }

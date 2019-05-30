@@ -1,5 +1,4 @@
 import * as bodyParser from 'body-parser'
-import * as cookieParser from 'cookie-parser'
 import * as express from 'express'
 import * as path from 'path'
 import * as http from 'http'
@@ -7,6 +6,7 @@ import * as cors from 'cors'
 import methodOverride = require('method-override')
 
 import { EventEmitter } from 'events'
+const MedoozeMediaServer = require('medooze-media-server')
 
 import apiRouter from './api'
 import  config  from './config'
@@ -38,6 +38,9 @@ export default class MediaServer extends EventEmitter {
             config.capabilities = params.capabilities
         }
 
+        MedoozeMediaServer.enableDebug(config.debug)
+        MedoozeMediaServer.enableUltraDebug(config.ultraDebug)
+        
         this.app = express()
 
         //configure application
