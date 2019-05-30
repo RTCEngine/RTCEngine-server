@@ -1,7 +1,5 @@
 import { EventEmitter } from 'events'
 
-import * as uuid from 'uuid'
-
 const MediaServer = require('medooze-media-server')
 const SemanticSDP = require('semantic-sdp')
 
