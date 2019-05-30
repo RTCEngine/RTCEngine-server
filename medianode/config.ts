@@ -1,13 +1,14 @@
 
 export default {
     debug: false,
+    log: false,
     ultraDebug: false,
     endpoint: '127.0.0.1',
     maxMediaPort: 20000,
     minMediaPort: 10000,
     capabilities: {
         audio: {
-            codecs: ['opus'],
+            codecs: ['opus;maxaveragebitrate=48000;maxplaybackrate=48000;stereo=1'],
             extensions: [
                 'urn:ietf:params:rtp-hdrext:ssrc-audio-level',
                 'urn:ietf:params:rtp-hdrext:sdes:mid'
