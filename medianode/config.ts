@@ -1,8 +1,10 @@
 
 export default {
-    debug: true,
-    ultraDebug: true,
+    debug: false,
+    ultraDebug: false,
     endpoint: '127.0.0.1',
+    maxMediaPort: 20000,
+    minMediaPort: 10000,
     capabilities: {
         audio: {
             codecs: ['opus'],

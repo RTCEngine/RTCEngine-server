@@ -40,6 +40,7 @@ export default class MediaServer extends EventEmitter {
 
         MedoozeMediaServer.enableDebug(config.debug)
         MedoozeMediaServer.enableUltraDebug(config.ultraDebug)
+        MedoozeMediaServer.setPortRange(config.minMediaPort, config.maxMediaPort)
         
         this.app = express()
 
