@@ -40,6 +40,13 @@ class SocketServer extends EventEmitter {
     
             const room = new Room(roomId)
 
+            // if it is the first one, we should clean the room
+            this.socketServer.of('/').in(roomId).clients( async (error, clients) => {
+                if (clients && clients.length == 0) {
+                    await room.shutdown()
+                }
+            })
+
 
             socket.on('join', async (data:any, ack:Function) => {
 
