@@ -4,8 +4,9 @@ export default {
     log: false,
     ultraDebug: false,
     endpoint: '127.0.0.1',
-    maxMediaPort: 20000,
-    minMediaPort: 10000,
+    maxMediaPort: 60000,
+    minMediaPort: 40000,
+    numMediaWorkers: -1,   
     capabilities: {
         audio: {
             codecs: ['opus;maxaveragebitrate=48000;maxplaybackrate=48000;stereo=1'],
