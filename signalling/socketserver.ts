@@ -83,7 +83,7 @@ class SocketServer extends EventEmitter {
                 socket.to(roomId).emit('streampublished', {
                     stream: {
                         publisherId: publisherId,
-                        data: streamData
+                        data: streamData || {}
                     }
                 })
             })

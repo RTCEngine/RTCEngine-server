@@ -117,8 +117,8 @@ class MediaRouter extends EventEmitter {
         transport.setLocalProperties(answer)
 
         const outgoing = transport.createOutgoingStream({
-			audio: this.incoming.getAudioTracks().length,
-			video: this.incoming.getVideoTracks().length
+			audio: true,
+			video: true
         })
 
         outgoing.attachTo(this.incoming)
