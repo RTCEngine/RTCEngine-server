@@ -5,8 +5,6 @@ import logger from '../lib/logger'
 
 const MediaServer = require('medooze-media-server')
 
-MediaServer.setPortRange(config.minMediaPort, config.maxMediaPort)
-
 
 class Context {
 
@@ -16,7 +14,9 @@ class Context {
     private _streamEndpoint:Map<string,any> = new Map()
 
 
-    constructor(){
+    constructor(){}
+
+    initContext() {
 
         let cpus = os.cpus().length
         if (config.numMediaWorkers >= cpus) {
@@ -64,6 +64,7 @@ class Context {
         return this._relayEndpoint
     }
 }
+
 
 const context = new Context()
 
