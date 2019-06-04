@@ -2,16 +2,17 @@ import {Response, Request, Router  } from 'express'
 
 const MediaServer = require('medooze-media-server')
 const SemanticSDP = require('semantic-sdp')
-const SDPInfo		= SemanticSDP.SDPInfo
 
-import MediaRouter from './router'
-
-import config from './config'
-import context from './context'
 import fetch from 'node-fetch'
 
-const apiRouter = Router()
+import MediaRouter from './router'
+import config from './config'
+import context from './context'
 
+import logger from '../lib/logger'
+
+
+const apiRouter = Router()
 
 
 apiRouter.get('/test', async (req: Request, res: Response) => {
@@ -22,6 +23,8 @@ apiRouter.get('/test', async (req: Request, res: Response) => {
 apiRouter.post('/api/publish', async (req: Request, res:Response) => {
 
     const {sdp,streamId} = req.body
+
+    logger.info(`publish ${streamId}`)
     
     const router = new MediaRouter(streamId, config.capabilities)
 
@@ -45,6 +48,8 @@ apiRouter.post('/api/publish', async (req: Request, res:Response) => {
 apiRouter.post('/api/unpublish', async (req: Request, res:Response) => {
 
     const {streamId} = req.body
+
+    logger.info(`unpublish ${streamId}`)
 
     const router = context.getRouter(streamId)
 
@@ -80,16 +85,19 @@ apiRouter.post('/api/play', async (req: Request, res:Response) => {
 
     const {sdp,streamId,origin} = req.body
 
+    logger.info(`play stream ${streamId} origin ${origin}`)
+
     let newRelay = false
     let router = context.getRouter(streamId)
 
     // if we do not have this stream,  we try to pull from origin 
     if (!router) {
 
+        logger.info(`relay stream ${streamId} from origin ${origin}`)
+
         const relayEndpoint = MediaServer.createEndpoint(config.endpoint)
 
         const relayOffer = relayEndpoint.createOffer(config.capabilities)
-
         const response = await fetch('http://' + origin + '/api/relay', {
             method: 'post',
             headers: { 'Content-Type': 'application/json' },
@@ -132,6 +140,8 @@ apiRouter.post('/api/play', async (req: Request, res:Response) => {
 apiRouter.post('/api/unplay', async (req: Request, res:Response) => {
 
     const {streamId,outgoingId} = req.body
+
+    logger.info(`unplay streamId ${streamId}  outgoingId ${outgoingId}`)
 
     const router = context.getRouter(streamId)
 
