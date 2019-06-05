@@ -2,8 +2,6 @@
 import fetch from 'node-fetch'
 
 
-
-
 const publish = async (node:string ,streamId: string, sdp: string, data?:any) => {
 
     let res = await fetch('http://'+ node + '/api/publish', {
@@ -15,11 +13,8 @@ const publish = async (node:string ,streamId: string, sdp: string, data?:any) =>
             data: data 
         })
     })
-
-    console.log(res)
     
     let ret = await res.json()
-    console.dir(ret)
     return ret.d
 }
 
@@ -37,7 +32,6 @@ const unpublish = async (node:string ,streamId: string) => {
     })
 
     let ret = await res.json()
-    console.dir(ret)
     return ret.d
 }
 
@@ -56,7 +50,6 @@ const play = async (origin:string,node:string, streamId: string, sdp: string) =>
 
     
     let ret = await res.json()
-    console.dir(ret)
     return ret.d
     
 }
@@ -75,7 +68,6 @@ const unplay = async (node:string,streamId: string, outgoingId:string) => {
     })
 
     let ret = await res.json()
-    console.dir(ret)
     return ret.d
 }
 

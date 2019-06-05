@@ -17,7 +17,8 @@ class MediaRouter extends EventEmitter {
     private capabilities: any
     private incoming: any
     private outgoings: Map<string,any> = new Map()
-    
+    private relay: boolean = false
+
 
     constructor(id:string, capabilities:any) {
         super()
@@ -27,6 +28,10 @@ class MediaRouter extends EventEmitter {
 
     public getId() {
         return this.routerId
+    }
+
+    public isRelay():boolean {
+        return this.relay
     }
 
     /**
@@ -53,7 +58,7 @@ class MediaRouter extends EventEmitter {
         const offer = SDPInfo.process(sdp)
         const transport = endpoint.createTransport(offer)
         transport.setRemoteProperties(offer)
-
+        
         const answer = offer.answer({
             dtls: transport.getLocalDTLSInfo(),
             ice: transport.getLocalICEInfo(),
@@ -79,6 +84,7 @@ class MediaRouter extends EventEmitter {
         const remote = SDPInfo.process(remoteSdp)
         const local = SDPInfo.process(localSdp)
 
+        this.relay = true
 
         const transport = endpoint.createTransport(remote, local, {disableSTUNKeepAlive: true})
         transport.setLocalProperties(local)
