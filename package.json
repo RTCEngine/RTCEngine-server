@@ -34,6 +34,7 @@
     "@types/socket.io": "^1.4.40",
     "@types/uuid": "^3.4.4",
     "@types/winston": "^2.4.4",
+    "@types/yargs": "^13.0.0",
     "body-parser": "^1.18.2",
     "commander": "^2.19.0",
     "cors": "^2.8.5",
@@ -59,6 +60,7 @@
     "typeorm": "^0.2.17",
     "typescript": "^3.2.2",
     "uuid": "^3.2.1",
-    "winston": "^3.2.1"
+    "winston": "^3.2.1",
+    "yargs": "^13.2.4"
   }
 }
