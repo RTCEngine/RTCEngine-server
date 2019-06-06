@@ -1,16 +1,19 @@
-import { config } from 'dotenv'
+import * as dotenv from 'dotenv'
+
+const ip = require('ip')
 
 import MediaServer from './medianode/server'
 
-config()
+dotenv.config()
 
 const yargs = require('yargs')
 
+const localhost = ip.address()
 
-const argv = yargs.usage('Usage: ts-node $0 -p 6001 -h 127.0.0.1 -e 127.0.0.1')
+const argv = yargs.usage(`Usage: ts-node $0 -p 6001 -h 127.0.0.1 -e {localhost}`)
     .help('help').alias('help','-h')
     .default({
-        endpoint:'127.0.0.1',
+        endpoint:localhost,
         host:'127.0.0.1',
         port:6001
     })
