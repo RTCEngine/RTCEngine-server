@@ -10,6 +10,13 @@ const SDPInfo = SemanticSDP.SDPInfo
 
 import Room from './room'
 import config from './config'
+import logger from './logger';
+
+declare module 'socket.io' {
+    interface Socket {
+        data?: any
+    }
+}
 
 
 class SocketServer extends EventEmitter {
@@ -35,7 +42,12 @@ class SocketServer extends EventEmitter {
             let published = false
             let streamId = null
 
-    
+            socket.data = {}
+            socket.data.joined = false
+            socket.data.published = false
+            socket.data.streamId = null
+
+
             let medianode = config.medianode[Math.floor(Math.random()*config.medianode.length)]
     
             const room = new Room(roomId)
@@ -75,6 +87,9 @@ class SocketServer extends EventEmitter {
                 const streamData = data.stream.data
 
                 streamId = publisherId
+
+                socket.data.streamId = publisherId
+                socket.data.published = true
 
                 const { answer } = await room.createPublisher(medianode.node,publisherId,sdp)
     
@@ -173,7 +188,7 @@ class SocketServer extends EventEmitter {
 
             socket.on('disconnect', async () => {
 
-                if (published) {
+                if (socket.data.published) {
                     socket.to(roomId).emit('streamunpublished', {
                         stream: {
                             publisherId: streamId

@@ -1,8 +1,8 @@
 
 export default {
-    debug: true,
-    log: true,
-    ultraDebug: true,
+    debug: false,
+    log: false,
+    ultraDebug: false,
     endpoint: '127.0.0.1',
     maxMediaPort: 60000,
     minMediaPort: 40000,
