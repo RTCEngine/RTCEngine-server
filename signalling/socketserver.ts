@@ -10,7 +10,8 @@ const SDPInfo = SemanticSDP.SDPInfo
 
 import Room from './room'
 import config from './config'
-import logger from './logger';
+import logger from '../lib/logger'
+
 
 declare module 'socket.io' {
     interface Socket {
@@ -37,11 +38,7 @@ class SocketServer extends EventEmitter {
         this.socketServer.on('connection', async (socket: SocketIO.Socket) => {
 
             const roomId = socket.handshake.query.room
-
-            let joined = false
-            let published = false
-            let streamId = null
-
+            
             socket.data = {}
             socket.data.joined = false
             socket.data.published = false
@@ -64,7 +61,7 @@ class SocketServer extends EventEmitter {
 
                 socket.join(roomId)
     
-                joined = true
+                socket.data.joined = true
     
                 let roomInfo
                 
@@ -86,7 +83,6 @@ class SocketServer extends EventEmitter {
                 const publisherId = data.stream.publisherId
                 const streamData = data.stream.data
 
-                streamId = publisherId
 
                 socket.data.streamId = publisherId
                 socket.data.published = true
@@ -191,11 +187,11 @@ class SocketServer extends EventEmitter {
                 if (socket.data.published) {
                     socket.to(roomId).emit('streamunpublished', {
                         stream: {
-                            publisherId: streamId
+                            publisherId: socket.data.streamId
                         }
                     })
     
-                    await room.stopPublisher(medianode.node, streamId)
+                    await room.stopPublisher(medianode.node, socket.data.streamId)
                 }
                 
     
