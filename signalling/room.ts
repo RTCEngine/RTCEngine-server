@@ -43,13 +43,16 @@ export default class Room extends EventEmitter {
 
     public async createPublisher(node:string,streamId:string,offer:string, data?:any) {
 
+        // todo error handle 
         const ret = await request.publish(node, streamId, offer, data)
-        const publisherId = ret.streamId
+
+        const publisherId = ret.data.streamId
+        const sdp = ret.data.sdp 
 
         await manager.addPublisher(node, this.roomId,streamId,data)
 
         return {
-            answer: ret.sdp,
+            answer: sdp,
             publisherId: publisherId
         }
     }
@@ -70,21 +73,21 @@ export default class Room extends EventEmitter {
 
         const ret = await request.play(origin,node, publisherId, offer)
 
-        if (ret.newRelay) {
+        if (ret.data.newRelay) {
             await manager.addNodeStreamRelay(node, this.roomId, publisherId)
         }
 
-        await manager.addSubscriber(node, this.roomId, publisherId, ret.outgoingId)
+        await manager.addSubscriber(node, this.roomId, publisherId, ret.data.outgoingId)
 
         return { 
-            subscriberId: ret.outgoingId,
-            answer: ret.sdp
+            subscriberId: ret.data.outgoingId,
+            answer: ret.data.sdp
         }
     }
 
 
     public async stopSubscriber(node:string,publisherId:string, subscriberId:string) {
-
+        
         await request.unplay(node,publisherId, subscriberId)
         await manager.removeSubscriber(node,this.roomId, publisherId, subscriberId)
     }

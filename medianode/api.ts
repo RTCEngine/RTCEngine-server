@@ -98,17 +98,34 @@ apiRouter.post('/api/play', async (req: Request, res:Response) => {
         const relayEndpoint = MediaServer.createEndpoint(config.endpoint)
 
         const relayOffer = relayEndpoint.createOffer(config.capabilities)
-        const response = await fetch('http://' + origin + '/api/relay', {
-            method: 'post',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                streamId: streamId,
-                sdp: relayOffer.toString()
-            })
-        })
 
-        const ret = await response.json()
-        
+        let ret 
+        try {
+            const response = await fetch('http://' + origin + '/api/relay', {
+                method: 'post',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    streamId: streamId,
+                    sdp: relayOffer.toString()
+                })
+            })
+            ret = await response.json()
+        } catch (error) {
+            return res.json({
+                s: 10002,
+                d: {},
+                e: 'service error'
+            })
+        }
+
+        if (ret.s == 10004) {
+            return res.json({
+                s: ret.s,
+                d: {},
+                e: ret.e 
+            })
+        }
+
         const answerStr = ret.d.sdp
 
         router = new MediaRouter(streamId,config.capabilities)

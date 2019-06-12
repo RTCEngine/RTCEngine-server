@@ -35,10 +35,11 @@ class SocketServer extends EventEmitter {
 
         this.socketServer.attach(httpserver)
 
+
         this.socketServer.on('connection', async (socket: SocketIO.Socket) => {
 
             const roomId = socket.handshake.query.room
-            
+
             socket.data = {}
             socket.data.joined = false
             socket.data.published = false
@@ -68,7 +69,7 @@ class SocketServer extends EventEmitter {
                 try {
                     roomInfo = await room.dumps()
                 } catch (error) {
-                    console.error(error)
+                    logger.error(error)
                 }
     
                 ack({
@@ -90,12 +91,12 @@ class SocketServer extends EventEmitter {
                 const { answer } = await room.createPublisher(medianode.node,publisherId,sdp)
     
                 ack({sdp:answer})
-                
-                socket.to(roomId).emit('streampublished', {
+
+                socket.to(roomId).emit('streamadded', {
                     stream: {
                         publisherId: publisherId,
                         data: streamData || {}
-                    }
+                    } 
                 })
             })
 
@@ -106,8 +107,8 @@ class SocketServer extends EventEmitter {
                 await room.stopPublisher(medianode.node,publisherId)
     
                 ack({})
-    
-                socket.to(roomId).emit('streamunpublished', {
+
+                socket.to(roomId).emit('streamremoved', {
                     stream: {
                         publisherId:publisherId
                     }
@@ -185,12 +186,13 @@ class SocketServer extends EventEmitter {
             socket.on('disconnect', async () => {
 
                 if (socket.data.published) {
-                    socket.to(roomId).emit('streamunpublished', {
+
+                    socket.to(roomId).emit('streamremoved', {
                         stream: {
                             publisherId: socket.data.streamId
                         }
                     })
-    
+
                     await room.stopPublisher(medianode.node, socket.data.streamId)
                 }
                 
