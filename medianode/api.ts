@@ -1,7 +1,5 @@
 import {Response, Request, Router  } from 'express'
 
-const MediaServer = require('medooze-media-server')
-const SemanticSDP = require('semantic-sdp')
 
 import fetch from 'node-fetch'
 
@@ -192,7 +190,7 @@ apiRouter.post('/api/relay', async (req:Request, res:Response) => {
             e: ''
         })
     }
-    
+
     const {answer, outgoing} = router.createOutgoing(sdp)
 
     res.json({
