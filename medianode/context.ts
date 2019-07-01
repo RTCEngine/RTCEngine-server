@@ -8,51 +8,39 @@ const MediaServer = require('medooze-media-server')
 
 class Context {
 
-    private _localEndpoints:any[] = []
-    private _routers:Map<string,MediaRouter> = new Map()
-    private _relayEndpoint:Map<string,any> = new Map()
-    private _streamEndpoint:Map<string,any> = new Map()
 
+    private _routers:Map<string,MediaRouter> = new Map()
+
+    private _endpoints: Map<string, any> = new Map()
 
     constructor(){}
 
-    initContext() {
-
-        let cpus = os.cpus().length
-        if (config.numMediaWorkers >= cpus) {
-            config.numMediaWorkers = cpus - 1
-        } else if(config.numMediaWorkers == -1) {
-            config.numMediaWorkers = cpus - 1
-        }
-
-        let numWorkers = config.numMediaWorkers
-        for (let i=0;i<numWorkers;i++) {
-            let endpoint = MediaServer.createEndpoint(config.endpoint)
-            endpoint.setAffinity(i)
-            this._localEndpoints.push(endpoint)
-        }
-
-        logger.info(`start ${numWorkers} media workers`)
-    }
-
     getEndpoint(streamId:string){
 
-        if(this._streamEndpoint.get(streamId)) {
-            return this._streamEndpoint.get(streamId)
+        if (this._endpoints.get(streamId)) {
+            return this._endpoints.get(streamId)
         }
 
-        let endpoint = this._localEndpoints[Math.floor(Math.random()*this._localEndpoints.length)]
-        this._streamEndpoint.set(streamId, endpoint)
+        let endpoint = MediaServer.createEndpoint(config.endpoint)
+        this._endpoints.set(streamId, endpoint)
+
+        let cpunumber = Math.floor(Math.random() * Math.floor(os.cpus.length))
+        endpoint.setAffinity(cpunumber)
         return endpoint
     }
 
-    removeStreamEndpoint(streamId:string) {
-        this._streamEndpoint.delete(streamId)
+    hasEndpoint(streamId:string) {
+        return this._endpoints.has(streamId)
     }
+    removeEndpoint(streamId:string) {
+        this._endpoints.delete(streamId)
+    }
+
     
     getRouter(routerId:string) {
         return this._routers.get(routerId)
     }
+
     addRouter(routerId:string,router:MediaRouter){
         this._routers.set(routerId, router)
     }
@@ -60,9 +48,6 @@ class Context {
         this._routers.delete(routerId)
     }
 
-    get relayEndpoints() {
-        return this._relayEndpoint
-    }
 }
 
 

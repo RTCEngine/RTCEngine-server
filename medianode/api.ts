@@ -25,12 +25,12 @@ apiRouter.post('/api/publish', async (req: Request, res:Response) => {
     const {sdp,streamId} = req.body
 
     logger.info(`publish ${streamId}`)
-    
-    const router = new MediaRouter(streamId, config.capabilities)
 
     const endpoint = context.getEndpoint(streamId)
+    
+    const router = new MediaRouter(streamId, endpoint,config.capabilities)
 
-    const {answer} = router.createIncoming(sdp, endpoint)
+    const {answer} = router.createIncoming(sdp)
 
     context.addRouter(router.getId(), router)
 
@@ -65,13 +65,13 @@ apiRouter.post('/api/unpublish', async (req: Request, res:Response) => {
     router.stop()
 
     context.removeRouter(streamId)
-    context.removeStreamEndpoint(streamId)
 
-    // it is relay incoming stream 
-    if (context.relayEndpoints.get(streamId)) {
-        context.relayEndpoints.get(streamId).stop()
-        context.relayEndpoints.delete(streamId)
+    if (context.hasEndpoint(streamId)) {
+        const endpoint = context.getEndpoint(streamId)
+        endpoint.stop()
     }
+
+    context.removeEndpoint(streamId)
 
     res.json({
         s: 10000,
@@ -95,9 +95,9 @@ apiRouter.post('/api/play', async (req: Request, res:Response) => {
 
         logger.info(`relay stream ${streamId} from origin ${origin}`)
 
-        const relayEndpoint = MediaServer.createEndpoint(config.endpoint)
+        const endpoint = context.getEndpoint(streamId)
 
-        const relayOffer = relayEndpoint.createOffer(config.capabilities)
+        const relayOffer = endpoint.createOffer(config.capabilities)
 
         let ret 
         try {
@@ -128,19 +128,17 @@ apiRouter.post('/api/play', async (req: Request, res:Response) => {
 
         const answerStr = ret.d.sdp
 
-        router = new MediaRouter(streamId,config.capabilities)
+        router = new MediaRouter(streamId,endpoint,config.capabilities)
 
-        router.createRelayIncoming(answerStr, relayOffer.toString(), relayEndpoint)
+        router.createRelayIncoming(answerStr, relayOffer.toString())
 
         context.addRouter(streamId, router)
 
         newRelay = true
-
-        context.relayEndpoints.set(streamId, relayEndpoint)
     }
 
     const endpoint = context.getEndpoint(streamId)
-    const {answer, outgoing} = router.createOutgoing(sdp, endpoint)
+    const {answer, outgoing} = router.createOutgoing(sdp)
 
     res.json({
         s: 10000,
@@ -173,12 +171,6 @@ apiRouter.post('/api/unplay', async (req: Request, res:Response) => {
 
     router.stopOutgoing(outgoingId)
 
-    // it is relay outgoing stream
-    if (context.relayEndpoints.get(outgoingId)) {
-        context.relayEndpoints.get(outgoingId).stop()
-        context.relayEndpoints.delete(outgoingId)
-    }
-
     res.json({
         s: 10000,
         d: { },
@@ -201,10 +193,7 @@ apiRouter.post('/api/relay', async (req:Request, res:Response) => {
         })
     }
     
-    const relayEndpoint = MediaServer.createEndpoint(config.endpoint)
-    const {answer, outgoing} = router.createOutgoing(sdp, relayEndpoint)
-
-    context.relayEndpoints.set(outgoing.getId(), relayEndpoint)
+    const {answer, outgoing} = router.createOutgoing(sdp)
 
     res.json({
         s: 10000,
