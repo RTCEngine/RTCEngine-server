@@ -34,7 +34,6 @@
     "@types/socket.io": "^1.4.40",
     "@types/uuid": "^3.4.4",
     "@types/winston": "^2.4.4",
-    "@types/yargs": "^13.0.0",
     "body-parser": "^1.18.2",
     "commander": "^2.19.0",
     "cors": "^2.8.5",
@@ -62,5 +61,7 @@
     "uuid": "^3.2.1",
     "winston": "^3.2.1",
     "yargs": "^13.2.4"
-  }
+  },
+  "appid": "80492",
+  "secret": "ea0e7d1805585809ab944a34218304217b1404bb"
 }
