@@ -138,6 +138,7 @@ apiRouter.post('/api/play', async (req: Request, res:Response) => {
     const endpoint = context.getEndpoint(streamId)
     const {answer, outgoing} = router.createOutgoing(sdp)
 
+
     res.json({
         s: 10000,
         d: { 

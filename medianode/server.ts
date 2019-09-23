@@ -10,7 +10,7 @@ const MedoozeMediaServer = require('medooze-media-server')
 
 import apiRouter from './api'
 import config  from './config'
-import context from './context'
+
 
 /**
  *
@@ -43,8 +43,6 @@ export default class MediaServer extends EventEmitter {
         MedoozeMediaServer.enableDebug(config.debug)
         MedoozeMediaServer.enableUltraDebug(config.ultraDebug)
         MedoozeMediaServer.setPortRange(config.minMediaPort, config.maxMediaPort)
-    
-        context.initContext()
         
         this.app = express()
 

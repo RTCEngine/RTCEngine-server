@@ -1,14 +1,17 @@
 
 export default {
-    debug: false,
-    log: false,
+    debug: true,
+    log: true,
     ultraDebug: false,
-    endpoint: '127.0.0.1',
+    endpoint: ['127.0.0.1','192.168.1.105'],
     maxMediaPort: 60000,
     minMediaPort: 40000,
     capabilities: {
         audio: {
             codecs: ['opus'],
+            rtcpfbs: [
+                { 'id': 'transport-cc' },
+            ],
             extensions: [
                 'urn:ietf:params:rtp-hdrext:ssrc-audio-level',
                 'urn:ietf:params:rtp-hdrext:sdes:mid',
